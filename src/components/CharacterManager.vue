@@ -142,7 +142,7 @@ const newCharacter = ref({
 // Fetch and parse the lore from the public directory
 const fetchLore = async () => {
   try {
-    const response1 = await fetch('/Chapter1.txt');
+    const response1 = await fetch('/the-arcane-scholar-s-legacy/Chapter1.txt');
     if (!response1.ok) {
       throw new Error('Failed to fetch Chapter1.txt.');
     }
@@ -150,7 +150,7 @@ const fetchLore = async () => {
     lore.value.chapter1 = text1.trim();
     console.log('Successfully read Chapter1.txt.');
 
-    const response2 = await fetch('/Chapter2.txt');
+    const response2 = await fetch('/the-arcane-scholar-s-legacy/Chapter2.txt');
     if (!response2.ok) {
       throw new Error('Failed to fetch Chapter2.txt.');
     }

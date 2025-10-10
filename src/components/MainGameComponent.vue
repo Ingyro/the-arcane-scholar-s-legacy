@@ -4,7 +4,7 @@
     <header class="flex items-center justify-between p-4 bg-violet-900 shadow-lg border-b border-yellow-600">
       <h1 class="text-3xl font-serif text-yellow-100 tracking-wide">The Arcane Scholar’s Legacy</h1>
       <div class="flex items-center space-x-4">
-        <span class="text-lg text-yellow-300">Knowledge: <span class="font-bold text-yellow-100 text-2xl">{{ knowledge.toFixed(2) }}</span></span>
+        <span class="text-lg text-yellow-300">Knowledge: <span class="font-bold text-yellow-100 text-2xl">{{ displayedKnowledge.toFixed(2) }}</span></span>
 
         <!-- Save Progress Button -->
         <button @click="saveGameProgress"
@@ -42,12 +42,14 @@
 
       <!-- Content Display Area -->
       <main class="flex-1 p-6 overflow-y-auto custom-scrollbar">
-        <!-- Dynamically render the active view component -->
+        <!-- MODIFIED: Pass characterDetails to SanctumView -->
         <SanctumView
           v-if="activeMenu === 'sanctum'"
           :knowledge="knowledge"
-          :multiplierItems="multiplierItems"
+          :multiplierTiers="multiplierTiers"
           :passiveKnowledgeGain="passiveKnowledgeGain"
+          :multiplierSectionTitle="multiplierSectionTitle"
+          :characterDetails="characterDetails"
           @generate-knowledge="generateKnowledge"
           @buy-multiplier="buyMultiplier"
         />
@@ -62,12 +64,12 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, computed } from 'vue';
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue';
 import { getAuth } from 'firebase/auth';
-import { getFirestore, doc, getDoc, setDoc, Timestamp } from 'firebase/firestore'; // Import Timestamp
+import { getFirestore, doc, getDoc, setDoc, Timestamp } from 'firebase/firestore';
 import { defineProps, defineEmits } from 'vue';
 
-// Import the new view components
+// Import the view components
 import SanctumView from './SanctumView.vue';
 import ResearchView from './ResearchView.vue';
 import ExpeditionsView from './ExpeditionsView.vue';
@@ -75,109 +77,128 @@ import InventoryView from './InventoryView.vue';
 import SkillTreeView from './SkillTreeView.vue';
 import ClassificationView from './ClassificationView.vue';
 
-// Define props that this component expects from its parent (App.vue)
 const props = defineProps({
-  userId: {
-    type: String,
-    required: true
-  },
-  characterId: {
-    type: String,
-    required: true
-  }
+  userId: { type: String, required: true },
+  characterId: { type: String, required: true }
 });
 
-// Define events this component can emit to its parent (App.vue)
 const emit = defineEmits(['returnToCharacterSelect']);
 
-console.log('MainGameComponent: Component setup started.');
-
-// --- Reactive State for Game Data ---
 const knowledge = ref(0);
-const activeMenu = ref('sanctum'); // Default active menu item
-const saving = ref(false); // New state for save button loading indicator
+const displayedKnowledge = ref(0);
 
-// Multiplier item data structure
-const multiplierItems = ref({
-  arcaneConduits: { level: 0, baseCost: 10, costMultiplier: 1.15, baseEffect: 0.1, effectMultiplier: 1.05, name: 'Arcane Conduit' },
-  ancientScrolls: { level: 0, baseCost: 50, costMultiplier: 1.2, baseEffect: 0.5, effectMultiplier: 1.08, name: 'Ancient Scroll' },
-  ethericCrystals: { level: 0, baseCost: 200, costMultiplier: 1.25, baseEffect: 2, effectMultiplier: 1.1, name: 'Etheric Crystal' },
-  celestialOrbs: { level: 0, baseCost: 1000, costMultiplier: 1.3, baseEffect: 10, effectMultiplier: 1.12, name: 'Celestial Orb' },
-});
+// MODIFIED: Added name and prestige to character details
+const characterDetails = ref({ name: '', faction: '', specialty: '', prestige: 0 });
 
-// --- Firebase Instances ---
+const multiplierTiers = ref([]);
+const activeMenu = ref('sanctum');
+const saving = ref(false);
+
 const auth = getAuth();
 const db = getFirestore();
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
-// --- Computed Properties ---
+const generateMultiplierTiers = () => {
+  const tiers = [];
+  const baseNames = ['Conduits', 'Scrolls', 'Crystals', 'Orbs'];
+  for (let i = 0; i < 20; i++) {
+    const tierPower = Math.pow(1.8, i);
+    const tierCostScale = Math.pow(10, i);
+    
+    tiers.push({
+      name: `Tier ${i + 1}: ${getTierName(i)}`,
+      unlocked: i === 0,
+      multipliers: baseNames.map((name, j) => ({
+        level: 0,
+        baseCost: (10 + j * 40) * tierCostScale,
+        costMultiplier: 1.15 + (i * 0.01),
+        baseEffect: (0.1 + j * 0.4) * tierPower,
+        effectMultiplier: 1.05 + (i * 0.005),
+        name: `Tier ${i + 1} ${name}`
+      }))
+    });
+  }
+  return tiers;
+};
 
-// Calculates the total passive knowledge gain per second
+const getTierName = (tierIndex) => {
+    const names = [
+        "Novice Whispers", "Apprentice Glyphs", "Adept's Tomes", "Mystic Runes", "Etheric Weavings",
+        "Celestial Charts", "Planar Bindings", "Chronomancer's Texts", "Abjurer's Wards", "Transmuter's Circles",
+        "Grandmaster's Codex", "Archmage's Grimoire", "Aetheric Formulas", "Cosmic Inscriptions", "Reality Equations",
+        "Void Manuscripts", "Primordial Truths", "Ascendant Doctrines", "God-Hand Schematics", "Nexus of All Knowledge"
+    ];
+    return names[tierIndex] || `Esoteric Tier ${tierIndex + 1}`;
+}
+
 const passiveKnowledgeGain = computed(() => {
   let totalGain = 0;
-  for (const key in multiplierItems.value) {
-    const item = multiplierItems.value[key];
-    if (item.level > 0) {
-      const currentEffect = item.baseEffect * Math.pow(item.effectMultiplier, item.level - 1);
-      totalGain += currentEffect;
+  multiplierTiers.value.forEach(tier => {
+    if (tier.unlocked) {
+      tier.multipliers.forEach(item => {
+        if (item.level > 0) {
+          totalGain += item.baseEffect * Math.pow(item.effectMultiplier, item.level - 1);
+        }
+      });
     }
-  }
+  });
   return totalGain;
 });
 
-// --- Game Logic Functions ---
+const multiplierSectionTitle = computed(() => {
+  const { faction, specialty } = characterDetails.value;
+  if (faction === 'Lumen' && specialty === 'Arcane') return 'Radiant Concordances';
+  if (faction === 'Lumen' && specialty === 'Alchemist') return 'Harmonious Concoctions';
+  if (faction === 'Umbra' && specialty === 'Arcane') return 'Veiled Incantations';
+  if (faction === 'Umbra' && specialty === 'Alchemist') return 'Transformative Elixirs';
+  return 'Arcane Multipliers';
+});
 
-// Function for the "Generate Knowledge" button click (base gain)
-const generateKnowledge = () => {
-  knowledge.value += 1; // Base knowledge gain per click
-  console.log('Knowledge generated (click):', knowledge.value);
-};
+const generateKnowledge = () => { knowledge.value += 1; };
 
-// Function to calculate the cost for the next level of a multiplier item
-const getNextLevelCost = (itemKey) => {
-  const item = multiplierItems.value[itemKey];
+const getNextLevelCost = (tierIndex, multiplierIndex) => {
+  const item = multiplierTiers.value[tierIndex]?.multipliers[multiplierIndex];
   if (!item) return Infinity;
   return item.baseCost * Math.pow(item.costMultiplier, item.level);
 };
 
-// Function to buy a multiplier item level
-const buyMultiplier = (itemKey) => {
-  const item = multiplierItems.value[itemKey];
-  if (!item) {
-    console.error('Invalid multiplier item key:', itemKey);
-    return;
-  }
+const buyMultiplier = ({ tierIndex, multiplierIndex }) => {
+  const tier = multiplierTiers.value[tierIndex];
+  const item = tier?.multipliers[multiplierIndex];
+  if (!item) return;
 
-  const cost = getNextLevelCost(itemKey);
+  const cost = getNextLevelCost(tierIndex, multiplierIndex);
   if (knowledge.value >= cost) {
     knowledge.value -= cost;
     item.level += 1;
-    console.log(`Bought ${item.name} level ${item.level}. Knowledge remaining: ${knowledge.value.toFixed(2)}`);
-    saveGameProgress(); // Trigger a save after purchase
-  } else {
-    console.warn(`Not enough knowledge to buy ${item.name}. Needed: ${cost.toFixed(2)}, Have: ${knowledge.value.toFixed(2)}`);
+    
+    if (item.level === 1 && multiplierIndex === tier.multipliers.length - 1) {
+        if (multiplierTiers.value[tierIndex + 1]) {
+            multiplierTiers.value[tierIndex + 1].unlocked = true;
+        }
+    }
+    saveGameProgress();
   }
 };
 
-// Function to save game progress to Firestore
 const saveGameProgress = async () => {
   saving.value = true;
+  if (!auth.currentUser || !props.characterId) return;
+  const characterDocRef = doc(db, `artifacts/${appId}/users/${auth.currentUser.uid}/characters`, props.characterId);
+  
+  // MODIFIED: Include prestige level in saved data
+  const saveData = {
+    knowledge: knowledge.value,
+    prestige: characterDetails.value.prestige,
+    multiplierTiers: multiplierTiers.value.map(tier => ({
+        unlocked: tier.unlocked,
+        levels: tier.multipliers.map(m => m.level)
+    })),
+    lastSaved: Timestamp.now(),
+  };
+
   try {
-    const user = auth.currentUser;
-    if (!user || !props.characterId) {
-      console.error('Save failed: User not authenticated or character not selected.');
-      return;
-    }
-
-    const characterDocRef = doc(db, `artifacts/${appId}/users/${user.uid}/characters`, props.characterId);
-
-    await setDoc(characterDocRef, {
-      knowledge: knowledge.value,
-      multiplierItems: JSON.parse(JSON.stringify(multiplierItems.value)),
-      lastSaved: Timestamp.now(), // Save current timestamp
-    }, { merge: true });
-
-    console.log('Game progress saved successfully for character:', props.characterId);
+    await setDoc(characterDocRef, saveData, { merge: true });
   } catch (error) {
     console.error('Error saving game progress:', error);
   } finally {
@@ -185,96 +206,102 @@ const saveGameProgress = async () => {
   }
 };
 
-// Function to load game progress from Firestore
 const loadGameProgress = async () => {
+  if (!auth.currentUser || !props.characterId) return;
+  const characterDocRef = doc(db, `artifacts/${appId}/users/${auth.currentUser.uid}/characters`, props.characterId);
+  
   try {
-    const user = auth.currentUser;
-    if (!user || !props.characterId) {
-      console.warn('Load skipped: User not authenticated or character not selected.');
-      return;
-    }
-
-    const characterDocRef = doc(db, `artifacts/${appId}/users/${user.uid}/characters`, props.characterId);
     const docSnap = await getDoc(characterDocRef);
-
     if (docSnap.exists()) {
       const data = docSnap.data();
-      knowledge.value = data.knowledge || 0;
+      
+      // MODIFIED: Load character name and prestige level
+      characterDetails.value.name = data.name || 'Scholar';
+      characterDetails.value.faction = data.faction || '';
+      characterDetails.value.specialty = data.specialty || '';
+      characterDetails.value.prestige = data.prestige || 0;
 
-      if (data.multiplierItems) {
-        for (const key in multiplierItems.value) {
-          if (data.multiplierItems[key]) {
-            multiplierItems.value[key].level = data.multiplierItems[key].level || 0;
+      const generatedTiers = generateMultiplierTiers();
+
+      if (data.multiplierTiers) {
+        data.multiplierTiers.forEach((savedTier, tierIndex) => {
+          if (generatedTiers[tierIndex]) {
+            generatedTiers[tierIndex].unlocked = savedTier.unlocked;
+            savedTier.levels.forEach((level, multiplierIndex) => {
+              if (generatedTiers[tierIndex].multipliers[multiplierIndex]) {
+                generatedTiers[tierIndex].multipliers[multiplierIndex].level = level;
+              }
+            });
           }
-        }
+        });
       }
+      multiplierTiers.value = generatedTiers;
 
-      // --- OFFLINE PROGRESS CALCULATION ---
+      const loadedKnowledge = data.knowledge || 0;
+
       if (data.lastSaved && passiveKnowledgeGain.value > 0) {
-        const lastSavedDate = data.lastSaved.toDate(); // Convert Firestore Timestamp to Date object
-        const now = new Date();
-        const timeElapsedSeconds = (now.getTime() - lastSavedDate.getTime()) / 1000; // Time in seconds
-
-        if (timeElapsedSeconds > 0) {
-          const offlineGain = timeElapsedSeconds * passiveKnowledgeGain.value;
-          knowledge.value += offlineGain;
-          console.log(`Offline gain for ${props.characterId}: ${offlineGain.toFixed(2)} knowledge over ${timeElapsedSeconds.toFixed(0)} seconds.`);
-        }
+        const timeElapsedSeconds = (new Date().getTime() - data.lastSaved.toDate().getTime()) / 1000;
+        knowledge.value = timeElapsedSeconds > 0 ? loadedKnowledge + (timeElapsedSeconds * passiveKnowledgeGain.value) : loadedKnowledge;
+      } else {
+        knowledge.value = loadedKnowledge;
       }
-      // --- END OFFLINE PROGRESS CALCULATION ---
+      
+      displayedKnowledge.value = knowledge.value;
 
-      console.log('Game progress loaded for character:', props.characterId, 'Knowledge:', knowledge.value, 'Multipliers:', multiplierItems.value);
     } else {
-      console.log('No saved progress found for this character. Starting new game state.');
+      multiplierTiers.value = generateMultiplierTiers();
       knowledge.value = 0;
-      for (const key in multiplierItems.value) {
-        multiplierItems.value[key].level = 0;
-      }
+      displayedKnowledge.value = 0;
     }
   } catch (error) {
     console.error('Error loading game progress:', error);
+    multiplierTiers.value = generateMultiplierTiers();
   }
 };
 
-// --- Navigation Functions ---
+let animationFrameId = null;
+watch(knowledge, (newValue) => {
+  if (animationFrameId) cancelAnimationFrame(animationFrameId);
+  const animate = () => {
+    const difference = newValue - displayedKnowledge.value;
+    const step = difference / 20;
+    if (Math.abs(difference) < 0.01) {
+      displayedKnowledge.value = newValue;
+      animationFrameId = null;
+    } else {
+      displayedKnowledge.value += step;
+      animationFrameId = requestAnimationFrame(animate);
+    }
+  };
+  animate();
+});
 
-// Function to handle user logout
 const handleLogout = async () => {
   await saveGameProgress();
-  try {
-    await auth.signOut();
-    console.log('MainGameComponent: User logged out successfully.');
-  } catch (error) {
-    console.error('MainGameComponent: Logout error:', error);
-  }
+  await auth.signOut();
 };
 
-// Function to return to character selection screen
 const returnToCharacterSelect = async () => {
   await saveGameProgress();
   emit('returnToCharacterSelect');
-  console.log('MainGameComponent: Returning to character selection.');
 };
 
-// --- Idle Game Logic ---
 let knowledgeInterval = null;
-
 onMounted(() => {
-  loadGameProgress(); // Load game progress when the component is mounted
-
+  loadGameProgress();
   knowledgeInterval = setInterval(() => {
-    knowledge.value += passiveKnowledgeGain.value;
+    if (passiveKnowledgeGain.value > 0) {
+        knowledge.value += passiveKnowledgeGain.value;
+    }
   }, 1000);
 });
 
 onUnmounted(async () => {
-  if (knowledgeInterval) {
-    clearInterval(knowledgeInterval);
-  }
+  if (knowledgeInterval) clearInterval(knowledgeInterval);
+  if (animationFrameId) cancelAnimationFrame(animationFrameId);
   await saveGameProgress();
 });
 
-// Menu items for navigation
 const menuItems = [
   { id: 'sanctum', name: 'Sanctum / Home' },
   { id: 'research', name: 'Research' },
@@ -286,19 +313,7 @@ const menuItems = [
 </script>
 
 <style scoped>
-/* Custom scrollbar for the main content area */
-.custom-scrollbar::-webkit-scrollbar {
-  width: 12px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: #2a0a3a; /* Deep violet */
-  border-radius: 10px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: #a07d3a; /* Muted gold */
-  border-radius: 10px;
-  border: 3px solid #2a0a3a; /* Space around thumb */
-}
+.custom-scrollbar::-webkit-scrollbar { width: 12px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: #2a0a3a; border-radius: 10px; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background-color: #a07d3a; border-radius: 10px; border: 3px solid #2a0a3a; }
 </style>
