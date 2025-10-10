@@ -29,20 +29,52 @@
 
     <!-- Main Content Area -->
     <div class="flex flex-1 overflow-hidden bg-gray-950">
-      <!-- Sidebar / Main Menu -->
-      <nav class="w-1/5 min-w-[180px] bg-violet-950 p-4 border-r border-yellow-600 flex flex-col space-y-3">
-        <h3 class="text-xl font-serif text-yellow-100 mb-4 border-b border-yellow-700 pb-2">Sanctum Menu</h3>
+      
+      <!-- Sidebar / Main Menu - Dynamic Width -->
+      <nav :class="['transition-all duration-300 bg-violet-950 p-4 border-r border-yellow-600 flex flex-col space-y-3',
+                    isMenuCollapsed ? 'w-20' : 'w-1/5 min-w-[180px]']">
+        
+        <!-- Menu Title and Collapse Button Container -->
+        <div class="flex items-center" :class="isMenuCollapsed ? 'justify-center' : 'justify-between'">
+          
+          <h3 :class="['text-xl font-serif text-yellow-100 border-b border-yellow-700 pb-2 mb-4 transition-opacity', 
+                       isMenuCollapsed ? 'opacity-0 h-0 p-0 overflow-hidden' : 'opacity-100']">
+            Sanctum Menu
+          </h3>
+
+          <!-- Collapse/Expand Button -->
+          <button @click="toggleMenu" 
+                  class="p-2 rounded-full hover:bg-violet-800 text-yellow-300 transition duration-150 flex-shrink-0" 
+                  :title="isMenuCollapsed ? 'Expand Menu' : 'Collapse Menu'">
+            <svg xmlns="http://www.w3.org/2000/svg" 
+                 :class="['w-6 h-6 transform transition-transform duration-300', isMenuCollapsed ? 'rotate-180' : '']" 
+                 fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+            </svg>
+          </button>
+        </div>
+
+        <!-- Navigation Links -->
         <button v-for="menuItem in menuItems" :key="menuItem.id"
                 @click="activeMenu = menuItem.id"
-                :class="['text-left px-4 py-2 rounded-lg transition duration-200 ease-in-out',
-                         activeMenu === menuItem.id ? 'bg-green-800 text-yellow-500 shadow-inner' : 'hover:bg-violet-800 text-yellow-300']">
-          {{ menuItem.name }}
+                :class="['text-left py-2 rounded-lg transition duration-200 ease-in-out flex items-center',
+                         activeMenu === menuItem.id ? 'bg-green-800 text-yellow-500 shadow-inner' : 'hover:bg-violet-800 text-yellow-300',
+                         isMenuCollapsed ? 'justify-center px-0' : 'px-4 space-x-3']">
+          
+          <!-- Icon/Emoji (Always visible) -->
+          <span :class="['text-2xl flex-shrink-0', isMenuCollapsed ? 'mx-auto' : '']" :title="isMenuCollapsed ? menuItem.name : ''">
+            {{ menuItem.icon }}
+          </span>
+          
+          <!-- Name (Hidden when collapsed) -->
+          <span v-if="!isMenuCollapsed" class="whitespace-nowrap overflow-hidden">
+            {{ menuItem.name }}
+          </span>
         </button>
       </nav>
 
       <!-- Content Display Area -->
       <main class="flex-1 p-6 overflow-y-auto custom-scrollbar">
-        <!-- MODIFIED: Pass characterDetails to SanctumView -->
         <SanctumView
           v-if="activeMenu === 'sanctum'"
           :knowledge="knowledge"
@@ -69,7 +101,7 @@ import { getAuth } from 'firebase/auth';
 import { getFirestore, doc, getDoc, setDoc, Timestamp } from 'firebase/firestore';
 import { defineProps, defineEmits } from 'vue';
 
-// Import the view components
+// Import the view components (These are assumed to exist in your environment)
 import SanctumView from './SanctumView.vue';
 import ResearchView from './ResearchView.vue';
 import ExpeditionsView from './ExpeditionsView.vue';
@@ -87,16 +119,23 @@ const emit = defineEmits(['returnToCharacterSelect']);
 const knowledge = ref(0);
 const displayedKnowledge = ref(0);
 
-// MODIFIED: Added name and prestige to character details
 const characterDetails = ref({ name: '', faction: '', specialty: '', prestige: 0 });
 
 const multiplierTiers = ref([]);
 const activeMenu = ref('sanctum');
 const saving = ref(false);
 
+// NEW STATE: Control for menu collapse
+const isMenuCollapsed = ref(false); 
+
 const auth = getAuth();
 const db = getFirestore();
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+// NEW FUNCTION: Toggle the menu state
+const toggleMenu = () => {
+  isMenuCollapsed.value = !isMenuCollapsed.value;
+};
 
 const generateMultiplierTiers = () => {
   const tiers = [];
@@ -186,7 +225,6 @@ const saveGameProgress = async () => {
   if (!auth.currentUser || !props.characterId) return;
   const characterDocRef = doc(db, `artifacts/${appId}/users/${auth.currentUser.uid}/characters`, props.characterId);
   
-  // MODIFIED: Include prestige level in saved data
   const saveData = {
     knowledge: knowledge.value,
     prestige: characterDetails.value.prestige,
@@ -215,7 +253,6 @@ const loadGameProgress = async () => {
     if (docSnap.exists()) {
       const data = docSnap.data();
       
-      // MODIFIED: Load character name and prestige level
       characterDetails.value.name = data.name || 'Scholar';
       characterDetails.value.faction = data.faction || '';
       characterDetails.value.specialty = data.specialty || '';
@@ -302,18 +339,25 @@ onUnmounted(async () => {
   await saveGameProgress();
 });
 
+// MODIFIED: Added an 'icon' property to each menu item for the collapsed view
 const menuItems = [
-  { id: 'sanctum', name: 'Sanctum / Home' },
-  { id: 'research', name: 'Research' },
-  { id: 'expeditions', name: 'Expeditions' },
-  { id: 'inventory', name: 'Inventory' },
-  { id: 'skill-tree', name: 'Skill Tree' },
-  { id: 'classification', name: 'Classification' },
+  { id: 'sanctum', name: 'Sanctum / Home', icon: '🏠' },
+  { id: 'research', name: 'Research', icon: '🔬' },
+  { id: 'expeditions', name: 'Expeditions', icon: '🗺️' },
+  { id: 'inventory', name: 'Inventory', icon: '🧰' },
+  { id: 'skill-tree', name: 'Skill Tree', icon: '🌳' },
+  { id: 'classification', name: 'Classification', icon: '📜' },
 ];
 </script>
 
 <style scoped>
+/* Standard custom scrollbar styling */
 .custom-scrollbar::-webkit-scrollbar { width: 12px; }
 .custom-scrollbar::-webkit-scrollbar-track { background: #2a0a3a; border-radius: 10px; }
 .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #a07d3a; border-radius: 10px; border: 3px solid #2a0a3a; }
+
+/* The main content area should handle its own scrolling */
+main {
+    height: 100%;
+}
 </style>
