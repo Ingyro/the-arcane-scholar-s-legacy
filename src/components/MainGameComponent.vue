@@ -3,6 +3,8 @@
     <header :class="[themeClasses.headerBg, 'shadow-lg border-b', themeClasses.accentBorder, 'flex items-center justify-between p-4']">
       <h1 class="text-3xl font-serif text-yellow-100 tracking-wide">The Arcane Scholar’s Legacy</h1>
       <div class="flex items-center space-x-4">
+        <span class="text-lg">Prestige: <span class="font-bold text-yellow-100 text-2xl">{{ characterDetails.prestige }}</span></span>
+        <span class="text-lg">Skill Points: <span class="font-bold text-yellow-100 text-2xl">{{ skillPoints }}</span></span>
         <span class="text-lg">Knowledge: <span class="font-bold text-yellow-100 text-2xl">{{ displayedKnowledge.toFixed(2) }}</span></span>
 
         <button @click="saveGameProgress"
@@ -133,6 +135,7 @@ const activeMenu = ref('sanctum');
 const saving = ref(false);
 const isMenuCollapsed = ref(false); 
 const currentTierIndex = ref(0); 
+const skillPoints = ref(0); // <-- NEW: Track Skill Points
 
 const auth = getAuth();
 const db = getFirestore();
@@ -207,11 +210,17 @@ const toggleMenu = () => {
   isMenuCollapsed.value = !isMenuCollapsed.value;
 };
 
+// --- PRESTIGE MULTIPLIER ---
+const prestigeMultiplier = computed(() => {
+  // Base bonus is 0.5% (0.005) per prestige level
+  return 1 + (characterDetails.value.prestige * 0.005);
+});
+// --- END PRESTIGE MULTIPLIER ---
+
 // --- DYNAMIC getTierName (Unchanged) ---
 const getTierName = (tierIndex) => {
     const { faction, specialty } = characterDetails.value;
     
-    // Default fallback names
     let names = [
         "Novice Whispers", "Apprentice Glyphs", "Adept's Tomes", "Mystic Runes", "Etheric Weavings",
         "Celestial Charts", "Planar Bindings", "Chronomancer's Texts", "Abjurer's Wards", "Transmuter's Circles",
@@ -257,11 +266,10 @@ const getTierName = (tierIndex) => {
 };
 // --- END DYNAMIC getTierName ---
 
-// --- NEW/MODIFIED: getMultiplierNames and generateMultiplierTiers ---
+// --- DYNAMIC getMultiplierNames ---
 const getMultiplierNames = () => {
   const { faction, specialty } = characterDetails.value;
   
-  // Default names (Conduits, Scrolls, Crystals, Orbs)
   let names = ['Conduits', 'Scrolls', 'Crystals', 'Orbs'];
 
   if (faction === 'Lumen') {
@@ -280,11 +288,16 @@ const getMultiplierNames = () => {
   
   return names;
 };
+// --- END DYNAMIC getMultiplierNames ---
 
+// --- generateMultiplierTiers (Prestige applied to baseEffect) ---
 const generateMultiplierTiers = () => {
   const tiers = [];
-  const baseNames = getMultiplierNames(); // <-- Use dynamic names
+  const baseNames = getMultiplierNames(); 
   
+  // Get the current prestige multiplier value now.
+  const currentPrestigeMultiplier = prestigeMultiplier.value;
+
   for (let i = 0; i < 20; i++) {
     const tierPower = Math.pow(1.8, i);
     const tierCostScale = Math.pow(10, i);
@@ -297,49 +310,60 @@ const generateMultiplierTiers = () => {
       multipliers: baseNames.map((name, j) => ({
         level: 0,
         maxLevel: maxLevel,
-        baseCost: (10 + j * 40) * tierCostScale,
+        
+        // baseCost is a stored value for scaling. Cost discount applied in getNextLevelCost.
+        baseCost: (10 + j * 40) * tierCostScale, 
         costMultiplier: 1.15 + (i * 0.01),
-        baseEffect: (0.1 + j * 0.4) * tierPower,
+        
+        // Base Effect is boosted by the prestige multiplier.
+        baseEffect: (0.1 + j * 0.4) * tierPower * currentPrestigeMultiplier, 
         effectMultiplier: 1.05 + (i * 0.005),
-        // Multiplier name now just uses the dynamic base name
-        name: name 
+        name: name
       }))
     });
   }
   return tiers;
 };
-// --- END NEW/MODIFIED: getMultiplierNames and generateMultiplierTiers ---
+// --- END generateMultiplierTiers ---
 
+// --- passiveKnowledgeGain (Prestige applied to final gain) ---
 const passiveKnowledgeGain = computed(() => {
   let totalGain = 0;
-  // Iterate through ALL tiers, even if not currently displayed, to calculate total passive gain
   multiplierTiers.value.forEach(tier => {
-    // Only count multipliers in tiers that have been "unlocked" in the data (i.e., progressed past)
     if (tier.unlocked) { 
       tier.multipliers.forEach(item => {
         if (item.level > 0) {
+          // item.baseEffect already includes the prestige multiplier from generateMultiplierTiers
           totalGain += item.baseEffect * Math.pow(item.effectMultiplier, item.level - 1);
         }
       });
     }
   });
-  return totalGain;
+  
+  // No need to multiply by prestigeMultiplier.value here since baseEffect already includes it.
+  // This keeps the totalGain logic clean and avoids double-dipping the bonus.
+  return totalGain; 
 });
+// --- END passiveKnowledgeGain ---
 
-// REMOVED: multiplierSectionTitle computed property
-
-// --- MODIFIED generateKnowledge: Grants passive gain instantly (Unchanged from last step) ---
+// --- generateKnowledge (Grants passive gain instantly) ---
 const generateKnowledge = () => { 
-    // The click grants the player a full second's worth of passive gain immediately.
+    // The passiveKnowledgeGain already includes the prestige bonus.
     knowledge.value += passiveKnowledgeGain.value || 1; 
 };
-// --- END MODIFIED generateKnowledge ---
+// --- END generateKnowledge ---
 
+// --- getNextLevelCost (Prestige applied as cost discount) ---
 const getNextLevelCost = (tierIndex, multiplierIndex) => {
   const item = multiplierTiers.value[tierIndex]?.multipliers[multiplierIndex];
   if (!item) return Infinity;
-  return item.baseCost * Math.pow(item.costMultiplier, item.level);
+  
+  // Base Cost is discounted by the Prestige Multiplier.
+  const baseCostDiscounted = item.baseCost / prestigeMultiplier.value;
+  
+  return baseCostDiscounted * Math.pow(item.costMultiplier, item.level);
 };
+// --- END getNextLevelCost ---
 
 // --- buyMultiplier Logic (Unchanged) ---
 const buyMultiplier = ({ tierIndex, multiplierIndex }) => {
@@ -371,19 +395,52 @@ const buyMultiplier = ({ tierIndex, multiplierIndex }) => {
 };
 // --- END buyMultiplier Logic ---
 
+// --- NEW: initiatePrestige Function ---
+const initiatePrestige = () => {
+  const oldPrestige = characterDetails.value.prestige;
+  characterDetails.value.prestige += 1;
+  
+  // Check for Skill Point Reward: 1 point every 10 levels
+  if (characterDetails.value.prestige > 0 && characterDetails.value.prestige % 10 === 0) {
+    skillPoints.value += 1;
+  }
+  
+  // Reset Core Game State
+  knowledge.value = 0;
+  displayedKnowledge.value = 0;
+  currentTierIndex.value = 0;
+  
+  // Reset Tiers: This call automatically uses the new prestige level for increased base stats.
+  multiplierTiers.value = generateMultiplierTiers(); 
+  
+  saveGameProgress();
+  
+  console.log(`PRESTIGE UP! Level: ${characterDetails.value.prestige}. Skill Points: ${skillPoints.value}`);
+};
+// --- END NEW: initiatePrestige Function ---
 
-// --- Advance Tier Logic (Unchanged) ---
+
+// --- MODIFIED advanceToNextTier (handles final tier check) ---
 const advanceToNextTier = () => {
   const currentTier = multiplierTiers.value[currentTierIndex.value];
-  const nextTier = multiplierTiers.value[currentTierIndex.value + 1];
+  const nextTierExists = multiplierTiers.value[currentTierIndex.value + 1];
   
-  if (currentTier && currentTier.multipliers.every(m => m.level === m.maxLevel) && nextTier && nextTier.unlocked) {
+  if (!currentTier || !currentTier.multipliers.every(m => m.level === m.maxLevel)) {
+    return;
+  }
+  
+  if (!nextTierExists) {
+    // Maxed out the very last tier (Tier 20)
+    initiatePrestige();
+  } else if (multiplierTiers.value[currentTierIndex.value + 1].unlocked) {
+    // Advancing to a normal, existing next tier
     currentTierIndex.value += 1; 
     saveGameProgress();
   }
 };
-// --- END Advance Tier Logic ---
+// --- END MODIFIED advanceToNextTier ---
 
+// --- Save Game Progress (Updated for skillPoints) ---
 const saveGameProgress = async () => {
   saving.value = true;
   if (!auth.currentUser || !props.characterId) return;
@@ -397,6 +454,7 @@ const saveGameProgress = async () => {
         unlocked: tier.unlocked,
         levels: tier.multipliers.map(m => m.level)
     })),
+    skillPoints: skillPoints.value, // <-- NEW: Save Skill Points
     lastSaved: Timestamp.now(),
   };
 
@@ -408,7 +466,9 @@ const saveGameProgress = async () => {
     saving.value = false;
   }
 };
+// --- END Save Game Progress ---
 
+// --- Load Game Progress (Updated for skillPoints) ---
 const loadGameProgress = async () => {
   if (!auth.currentUser || !props.characterId) return;
   const characterDocRef = doc(db, `artifacts/${appId}/users/${auth.currentUser.uid}/characters`, props.characterId);
@@ -418,15 +478,17 @@ const loadGameProgress = async () => {
     if (docSnap.exists()) {
       const data = docSnap.data();
       
-      // Load character details first (Crucial for generating correct names)
+      // Load character details first (Crucial for generating correct names/stats)
       characterDetails.value.name = data.name || 'Scholar';
       characterDetails.value.faction = data.faction || '';
       characterDetails.value.specialty = data.specialty || '';
       characterDetails.value.prestige = data.prestige || 0;
       
+      // Load new state variables
+      skillPoints.value = data.skillPoints || 0; // <-- NEW: Load Skill Points
       currentTierIndex.value = data.currentTierIndex || 0;
 
-      // Regenerate tiers now that character details (for all names) are loaded
+      // Regenerate tiers now (this incorporates the loaded prestige level)
       const generatedTiers = generateMultiplierTiers();
 
       if (data.multiplierTiers) {
@@ -460,12 +522,14 @@ const loadGameProgress = async () => {
       knowledge.value = 0;
       displayedKnowledge.value = 0;
       currentTierIndex.value = 0;
+      skillPoints.value = 0;
     }
   } catch (error) {
     console.error('Error loading game progress:', error);
     multiplierTiers.value = generateMultiplierTiers();
   }
 };
+// --- END Load Game Progress ---
 
 let animationFrameId = null;
 watch(knowledge, (newValue) => {
