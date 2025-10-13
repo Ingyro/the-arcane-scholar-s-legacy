@@ -7,10 +7,10 @@
     </h2>
     
     <p class="text-lg" :class="themeClasses.primaryText">
-      Organize and categorize your vast knowledge and discoveries.
+      Organize and categorize all current players (seasonals and permanents).
     </p>
     
-    <p class="text-sm mt-4" :class="themeClasses.primaryText">This section helps you keep track of all the arcane secrets you've uncovered.</p>
+    <p class="text-sm mt-4" :class="themeClasses.primaryText">This section is for rankings. You will see your possition based on Faction, Specialty, and location.</p>
   </section>
 </template>
 
