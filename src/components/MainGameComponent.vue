@@ -1,25 +1,21 @@
 <template>
-  <div class="flex flex-col h-screen w-full bg-gray-950 text-yellow-300 font-sans overflow-hidden">
-    <!-- Game Header -->
-    <header class="flex items-center justify-between p-4 bg-violet-900 shadow-lg border-b border-yellow-600">
+  <div :class="[themeClasses.primaryBg, themeClasses.primaryText, 'flex flex-col h-screen w-full font-sans overflow-hidden']">
+    <header :class="[themeClasses.headerBg, 'shadow-lg border-b', themeClasses.accentBorder, 'flex items-center justify-between p-4']">
       <h1 class="text-3xl font-serif text-yellow-100 tracking-wide">The Arcane Scholar’s Legacy</h1>
       <div class="flex items-center space-x-4">
-        <span class="text-lg text-yellow-300">Knowledge: <span class="font-bold text-yellow-100 text-2xl">{{ displayedKnowledge.toFixed(2) }}</span></span>
+        <span class="text-lg">Knowledge: <span class="font-bold text-yellow-100 text-2xl">{{ displayedKnowledge.toFixed(2) }}</span></span>
 
-        <!-- Save Progress Button -->
         <button @click="saveGameProgress"
                 :disabled="saving"
                 class="bg-blue-700 hover:bg-blue-800 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed">
           {{ saving ? 'Saving...' : 'Save Progress' }}
         </button>
 
-        <!-- Back to Characters Button -->
         <button @click="returnToCharacterSelect"
                 class="bg-gray-700 hover:bg-gray-800 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out">
           Back to Characters
         </button>
 
-        <!-- Logout Button -->
         <button @click="handleLogout"
                 class="bg-red-700 hover:bg-red-800 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out">
           Log Out
@@ -27,24 +23,21 @@
       </div>
     </header>
 
-    <!-- Main Content Area -->
-    <div class="flex flex-1 overflow-hidden bg-gray-950">
+    <div class="flex flex-1 overflow-hidden">
       
-      <!-- Sidebar / Main Menu - Dynamic Width -->
-      <nav :class="['transition-all duration-300 bg-violet-950 p-4 border-r border-yellow-600 flex flex-col space-y-3',
+      <nav :class="[themeClasses.sidebarBg, 'transition-all duration-300 p-4 border-r', themeClasses.accentBorder, 'flex flex-col space-y-3',
                     isMenuCollapsed ? 'w-20' : 'w-1/5 min-w-[180px]']">
         
-        <!-- Menu Title and Collapse Button Container -->
         <div class="flex items-center" :class="isMenuCollapsed ? 'justify-center' : 'justify-between'">
           
-          <h3 :class="['text-xl font-serif text-yellow-100 border-b border-yellow-700 pb-2 mb-4 transition-opacity', 
+          <h3 :class="['text-xl font-serif text-yellow-100 pb-2 mb-4 transition-opacity border-b', themeClasses.accentBorder,
                        isMenuCollapsed ? 'opacity-0 h-0 p-0 overflow-hidden' : 'opacity-100']">
             Sanctum Menu
           </h3>
 
-          <!-- Collapse/Expand Button -->
           <button @click="toggleMenu" 
-                  class="p-2 rounded-full hover:bg-violet-800 text-yellow-300 transition duration-150 flex-shrink-0" 
+                  class="p-2 rounded-full hover:opacity-80 transition duration-150 flex-shrink-0" 
+                  :class="themeClasses.primaryText"
                   :title="isMenuCollapsed ? 'Expand Menu' : 'Collapse Menu'">
             <svg xmlns="http://www.w3.org/2000/svg" 
                  :class="['w-6 h-6 transform transition-transform duration-300', isMenuCollapsed ? 'rotate-180' : '']" 
@@ -54,42 +47,56 @@
           </button>
         </div>
 
-        <!-- Navigation Links -->
         <button v-for="menuItem in menuItems" :key="menuItem.id"
                 @click="activeMenu = menuItem.id"
                 :class="['text-left py-2 rounded-lg transition duration-200 ease-in-out flex items-center',
-                         activeMenu === menuItem.id ? 'bg-green-800 text-yellow-500 shadow-inner' : 'hover:bg-violet-800 text-yellow-300',
+                         activeMenu === menuItem.id ? [themeClasses.activeMenuBg, themeClasses.primaryText, 'shadow-inner'] : 'hover:opacity-80',
+                         themeClasses.primaryText,
                          isMenuCollapsed ? 'justify-center px-0' : 'px-4 space-x-3']">
           
-          <!-- Icon/Emoji (Always visible) -->
           <span :class="['text-2xl flex-shrink-0', isMenuCollapsed ? 'mx-auto' : '']" :title="isMenuCollapsed ? menuItem.name : ''">
             {{ menuItem.icon }}
           </span>
           
-          <!-- Name (Hidden when collapsed) -->
           <span v-if="!isMenuCollapsed" class="whitespace-nowrap overflow-hidden">
             {{ menuItem.name }}
           </span>
         </button>
       </nav>
 
-      <!-- Content Display Area -->
-      <main class="flex-1 p-6 overflow-y-auto custom-scrollbar">
+      <main :class="['flex-1 p-6 overflow-y-auto custom-scrollbar', themeClasses.primaryBg]">
         <SanctumView
           v-if="activeMenu === 'sanctum'"
           :knowledge="knowledge"
           :multiplierTiers="multiplierTiers"
           :passiveKnowledgeGain="passiveKnowledgeGain"
-          :multiplierSectionTitle="multiplierSectionTitle"
           :characterDetails="characterDetails"
+          :theme-classes="themeClasses"
+          :currentTierIndex="currentTierIndex"
           @generate-knowledge="generateKnowledge"
           @buy-multiplier="buyMultiplier"
+          @advance-tier="advanceToNextTier"
         />
-        <ResearchView v-else-if="activeMenu === 'research'" />
-        <ExpeditionsView v-else-if="activeMenu === 'expeditions'" />
-        <InventoryView v-else-if="activeMenu === 'inventory'" />
-        <SkillTreeView v-else-if="activeMenu === 'skill-tree'" />
-        <ClassificationView v-else-if="activeMenu === 'classification'" />
+        <ResearchView 
+          v-else-if="activeMenu === 'research'" 
+          :theme-classes="themeClasses"
+        />
+        <ExpeditionsView 
+          v-else-if="activeMenu === 'expeditions'" 
+          :theme-classes="themeClasses"
+        />
+        <InventoryView 
+          v-else-if="activeMenu === 'inventory'" 
+          :theme-classes="themeClasses"
+        />
+        <SkillTreeView 
+          v-else-if="activeMenu === 'skill-tree'" 
+          :theme-classes="themeClasses"
+        />
+        <ClassificationView 
+          v-else-if="activeMenu === 'classification'" 
+          :theme-classes="themeClasses"
+        />
       </main>
     </div>
   </div>
@@ -101,7 +108,7 @@ import { getAuth } from 'firebase/auth';
 import { getFirestore, doc, getDoc, setDoc, Timestamp } from 'firebase/firestore';
 import { defineProps, defineEmits } from 'vue';
 
-// Import the view components (These are assumed to exist in your environment)
+// Import the view components (Assumed to exist)
 import SanctumView from './SanctumView.vue';
 import ResearchView from './ResearchView.vue';
 import ExpeditionsView from './ExpeditionsView.vue';
@@ -124,56 +131,191 @@ const characterDetails = ref({ name: '', faction: '', specialty: '', prestige: 0
 const multiplierTiers = ref([]);
 const activeMenu = ref('sanctum');
 const saving = ref(false);
-
-// NEW STATE: Control for menu collapse
 const isMenuCollapsed = ref(false); 
+const currentTierIndex = ref(0); 
 
 const auth = getAuth();
 const db = getFirestore();
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
-// NEW FUNCTION: Toggle the menu state
+// --- THEME LOGIC (Unchanged) ---
+const themeClasses = computed(() => {
+  const { faction, specialty } = characterDetails.value;
+  
+  let primaryBg = 'bg-gray-950';
+  let primaryText = 'text-yellow-300';
+  let headerBg = 'bg-violet-900';
+  let accentBorder = 'border-yellow-600';
+  let sidebarBg = 'bg-violet-950';
+  let activeMenuBg = 'bg-green-800'; 
+
+  if (faction === 'Lumen') {
+    if (specialty === 'Arcane') {
+      primaryBg = 'bg-white';
+      primaryText = 'text-blue-900';
+      headerBg = 'bg-amber-500';
+      accentBorder = 'border-blue-500';
+      sidebarBg = 'bg-blue-50';
+      activeMenuBg = 'bg-blue-300';
+    } else if (specialty === 'Alchemist') {
+      primaryBg = 'bg-gray-50';
+      primaryText = 'text-green-900';
+      headerBg = 'bg-lime-600';
+      accentBorder = 'border-green-700';
+      sidebarBg = 'bg-lime-50';
+      activeMenuBg = 'bg-lime-300';
+    } else {
+        primaryBg = 'bg-gray-100';
+        primaryText = 'text-gray-800';
+        headerBg = 'bg-amber-500';
+        accentBorder = 'border-amber-700';
+        sidebarBg = 'bg-amber-100';
+        activeMenuBg = 'bg-amber-300';
+    }
+  } 
+  else if (faction === 'Umbra') {
+    if (specialty === 'Arcane') {
+      primaryBg = 'bg-black';
+      primaryText = 'text-lime-400';
+      headerBg = 'bg-purple-950';
+      accentBorder = 'border-lime-500';
+      sidebarBg = 'bg-purple-900';
+      activeMenuBg = 'bg-lime-700';
+    } else if (specialty === 'Alchemist') {
+      primaryBg = 'bg-red-950';
+      primaryText = 'text-red-300';
+      headerBg = 'bg-red-800';
+      accentBorder = 'border-red-600';
+      sidebarBg = 'bg-red-900';
+      activeMenuBg = 'bg-red-700';
+    }
+  }
+
+  return {
+    primaryBg,
+    primaryText,
+    headerBg,
+    accentBorder,
+    sidebarBg,
+    activeMenuBg
+  };
+});
+// --- END THEME LOGIC ---
+
+
 const toggleMenu = () => {
   isMenuCollapsed.value = !isMenuCollapsed.value;
 };
 
-const generateMultiplierTiers = () => {
-  const tiers = [];
-  const baseNames = ['Conduits', 'Scrolls', 'Crystals', 'Orbs'];
-  for (let i = 0; i < 20; i++) {
-    const tierPower = Math.pow(1.8, i);
-    const tierCostScale = Math.pow(10, i);
-    
-    tiers.push({
-      name: `Tier ${i + 1}: ${getTierName(i)}`,
-      unlocked: i === 0,
-      multipliers: baseNames.map((name, j) => ({
-        level: 0,
-        baseCost: (10 + j * 40) * tierCostScale,
-        costMultiplier: 1.15 + (i * 0.01),
-        baseEffect: (0.1 + j * 0.4) * tierPower,
-        effectMultiplier: 1.05 + (i * 0.005),
-        name: `Tier ${i + 1} ${name}`
-      }))
-    });
-  }
-  return tiers;
-};
-
+// --- DYNAMIC getTierName (Unchanged) ---
 const getTierName = (tierIndex) => {
-    const names = [
+    const { faction, specialty } = characterDetails.value;
+    
+    // Default fallback names
+    let names = [
         "Novice Whispers", "Apprentice Glyphs", "Adept's Tomes", "Mystic Runes", "Etheric Weavings",
         "Celestial Charts", "Planar Bindings", "Chronomancer's Texts", "Abjurer's Wards", "Transmuter's Circles",
         "Grandmaster's Codex", "Archmage's Grimoire", "Aetheric Formulas", "Cosmic Inscriptions", "Reality Equations",
         "Void Manuscripts", "Primordial Truths", "Ascendant Doctrines", "God-Hand Schematics", "Nexus of All Knowledge"
     ];
+
+    if (faction === 'Lumen') {
+        if (specialty === 'Arcane') {
+            names = [
+                "Solar Inscriptions", "Starfire Studies", "Aetheric Lumina", "Ascendant Cantrips", "Chalice of Radiance",
+                "Empyrean Scrolls", "Divine Geometry", "Sunsong Orbs", "Sanctified Wards", "Radiant Transcriptions",
+                "The Holy Codex", "High Archon's Primer", "Light-Form Formulas", "Cosmic Alignment", "Edicts of Truth",
+                "Ethereal Scripts", "Primal Genesis", "Edicts of the Source", "Schema of Creation", "Heart of the Cosmos"
+            ];
+        } else if (specialty === 'Alchemist') {
+            names = [
+                "Bright Concoctions", "Verdant Formulas", "Golden Retorts", "Elixirs of Life", "Vials of Purity",
+                "Reagent Catalysts", "Alchemical Transmutations", "Crystals of Growth", "Stable Solutions", "The Great Work",
+                "Philosopher's Stone", "Magnum Opus", "Homunculus Formulas", "Symphony of Elements", "Apothecary's Vault",
+                "True Essences", "Materia Prima", "The Unbreakable Bond", "Perfect Synthesis", "Wellspring of Vitality"
+            ];
+        }
+    } else if (faction === 'Umbra') {
+        if (specialty === 'Arcane') {
+            names = [
+                "Shadowed Whispers", "Nocturnal Glyphs", "Voidweaver Texts", "Ebon Incantations", "Sepulchral Weavings",
+                "Forbidden Scrolls", "The Black Geometry", "Moonshard Orbs", "Cursed Wards", "Malefic Transcriptions",
+                "The Shadow Codex", "Necromancer's Grimoire", "Dark Matter Formulas", "Cosmic Discord", "Equations of Decay",
+                "Void Manuscripts", "Primal Entropy", "Doctrines of the End", "Schema of Annihilation", "Heart of the Void"
+            ];
+        } else if (specialty === 'Alchemist') {
+            names = [
+                "Crimson Brews", "Corrupted Essences", "Blackened Crucibles", "Tinctures of Dread", "Sanguine Phials",
+                "Venomous Catalysts", "Vile Transmutations", "Crystals of Stasis", "Unstable Solutions", "The Lesser Work",
+                "Blood Stone", "Abyss Opus", "Gargoyle Formulas", "Dissonant Elements", "Poisoner's Vault",
+                "Dark Essences", "Materia Tenebrae", "The Broken Bond", "Failed Synthesis", "Wellspring of Pestilence"
+            ];
+        }
+    }
+    
     return names[tierIndex] || `Esoteric Tier ${tierIndex + 1}`;
-}
+};
+// --- END DYNAMIC getTierName ---
+
+// --- NEW/MODIFIED: getMultiplierNames and generateMultiplierTiers ---
+const getMultiplierNames = () => {
+  const { faction, specialty } = characterDetails.value;
+  
+  // Default names (Conduits, Scrolls, Crystals, Orbs)
+  let names = ['Conduits', 'Scrolls', 'Crystals', 'Orbs'];
+
+  if (faction === 'Lumen') {
+    if (specialty === 'Arcane') {
+        names = ['Light Channels', 'Sunstone Tablets', 'Prismatic Focus', 'Aether Orbs'];
+    } else if (specialty === 'Alchemist') {
+        names = ['Flow Regulators', 'Reagent Formulas', 'Growth Crystals', 'Stabilizing Orbs'];
+    }
+  } else if (faction === 'Umbra') {
+    if (specialty === 'Arcane') {
+        names = ['Shadow Conduits', 'Ebon Runes', 'Void Shards', 'Lunar Orbs'];
+    } else if (specialty === 'Alchemist') {
+        names = ['Corrupting Vents', 'Necrotic Pages', 'Binding Agents', 'Decay Orbs'];
+    }
+  }
+  
+  return names;
+};
+
+const generateMultiplierTiers = () => {
+  const tiers = [];
+  const baseNames = getMultiplierNames(); // <-- Use dynamic names
+  
+  for (let i = 0; i < 20; i++) {
+    const tierPower = Math.pow(1.8, i);
+    const tierCostScale = Math.pow(10, i);
+    
+    const maxLevel = 20 + (i * 20);
+
+    tiers.push({
+      name: `Tier ${i + 1}: ${getTierName(i)}`,
+      unlocked: i === 0, 
+      multipliers: baseNames.map((name, j) => ({
+        level: 0,
+        maxLevel: maxLevel,
+        baseCost: (10 + j * 40) * tierCostScale,
+        costMultiplier: 1.15 + (i * 0.01),
+        baseEffect: (0.1 + j * 0.4) * tierPower,
+        effectMultiplier: 1.05 + (i * 0.005),
+        // Multiplier name now just uses the dynamic base name
+        name: name 
+      }))
+    });
+  }
+  return tiers;
+};
+// --- END NEW/MODIFIED: getMultiplierNames and generateMultiplierTiers ---
 
 const passiveKnowledgeGain = computed(() => {
   let totalGain = 0;
+  // Iterate through ALL tiers, even if not currently displayed, to calculate total passive gain
   multiplierTiers.value.forEach(tier => {
-    if (tier.unlocked) {
+    // Only count multipliers in tiers that have been "unlocked" in the data (i.e., progressed past)
+    if (tier.unlocked) { 
       tier.multipliers.forEach(item => {
         if (item.level > 0) {
           totalGain += item.baseEffect * Math.pow(item.effectMultiplier, item.level - 1);
@@ -184,16 +326,14 @@ const passiveKnowledgeGain = computed(() => {
   return totalGain;
 });
 
-const multiplierSectionTitle = computed(() => {
-  const { faction, specialty } = characterDetails.value;
-  if (faction === 'Lumen' && specialty === 'Arcane') return 'Radiant Concordances';
-  if (faction === 'Lumen' && specialty === 'Alchemist') return 'Harmonious Concoctions';
-  if (faction === 'Umbra' && specialty === 'Arcane') return 'Veiled Incantations';
-  if (faction === 'Umbra' && specialty === 'Alchemist') return 'Transformative Elixirs';
-  return 'Arcane Multipliers';
-});
+// REMOVED: multiplierSectionTitle computed property
 
-const generateKnowledge = () => { knowledge.value += 1; };
+// --- MODIFIED generateKnowledge: Grants passive gain instantly (Unchanged from last step) ---
+const generateKnowledge = () => { 
+    // The click grants the player a full second's worth of passive gain immediately.
+    knowledge.value += passiveKnowledgeGain.value || 1; 
+};
+// --- END MODIFIED generateKnowledge ---
 
 const getNextLevelCost = (tierIndex, multiplierIndex) => {
   const item = multiplierTiers.value[tierIndex]?.multipliers[multiplierIndex];
@@ -201,24 +341,48 @@ const getNextLevelCost = (tierIndex, multiplierIndex) => {
   return item.baseCost * Math.pow(item.costMultiplier, item.level);
 };
 
+// --- buyMultiplier Logic (Unchanged) ---
 const buyMultiplier = ({ tierIndex, multiplierIndex }) => {
   const tier = multiplierTiers.value[tierIndex];
   const item = tier?.multipliers[multiplierIndex];
   if (!item) return;
+
+  if (item.level >= item.maxLevel) {
+      return; 
+  }
 
   const cost = getNextLevelCost(tierIndex, multiplierIndex);
   if (knowledge.value >= cost) {
     knowledge.value -= cost;
     item.level += 1;
     
-    if (item.level === 1 && multiplierIndex === tier.multipliers.length - 1) {
-        if (multiplierTiers.value[tierIndex + 1]) {
-            multiplierTiers.value[tierIndex + 1].unlocked = true;
+    if (item.level === item.maxLevel) {
+        const allMaxed = tier.multipliers.every(m => m.level === m.maxLevel);
+
+        if (allMaxed) {
+            if (multiplierTiers.value[tierIndex + 1]) {
+                multiplierTiers.value[tierIndex + 1].unlocked = true;
+            }
         }
     }
+    
     saveGameProgress();
   }
 };
+// --- END buyMultiplier Logic ---
+
+
+// --- Advance Tier Logic (Unchanged) ---
+const advanceToNextTier = () => {
+  const currentTier = multiplierTiers.value[currentTierIndex.value];
+  const nextTier = multiplierTiers.value[currentTierIndex.value + 1];
+  
+  if (currentTier && currentTier.multipliers.every(m => m.level === m.maxLevel) && nextTier && nextTier.unlocked) {
+    currentTierIndex.value += 1; 
+    saveGameProgress();
+  }
+};
+// --- END Advance Tier Logic ---
 
 const saveGameProgress = async () => {
   saving.value = true;
@@ -228,6 +392,7 @@ const saveGameProgress = async () => {
   const saveData = {
     knowledge: knowledge.value,
     prestige: characterDetails.value.prestige,
+    currentTierIndex: currentTierIndex.value, 
     multiplierTiers: multiplierTiers.value.map(tier => ({
         unlocked: tier.unlocked,
         levels: tier.multipliers.map(m => m.level)
@@ -253,11 +418,15 @@ const loadGameProgress = async () => {
     if (docSnap.exists()) {
       const data = docSnap.data();
       
+      // Load character details first (Crucial for generating correct names)
       characterDetails.value.name = data.name || 'Scholar';
       characterDetails.value.faction = data.faction || '';
       characterDetails.value.specialty = data.specialty || '';
       characterDetails.value.prestige = data.prestige || 0;
+      
+      currentTierIndex.value = data.currentTierIndex || 0;
 
+      // Regenerate tiers now that character details (for all names) are loaded
       const generatedTiers = generateMultiplierTiers();
 
       if (data.multiplierTiers) {
@@ -286,9 +455,11 @@ const loadGameProgress = async () => {
       displayedKnowledge.value = knowledge.value;
 
     } else {
+      // Default initialization if no save data exists
       multiplierTiers.value = generateMultiplierTiers();
       knowledge.value = 0;
       displayedKnowledge.value = 0;
+      currentTierIndex.value = 0;
     }
   } catch (error) {
     console.error('Error loading game progress:', error);
@@ -325,7 +496,7 @@ const returnToCharacterSelect = async () => {
 
 let knowledgeInterval = null;
 onMounted(() => {
-  loadGameProgress();
+  loadGameProgress(); 
   knowledgeInterval = setInterval(() => {
     if (passiveKnowledgeGain.value > 0) {
         knowledge.value += passiveKnowledgeGain.value;
@@ -339,7 +510,6 @@ onUnmounted(async () => {
   await saveGameProgress();
 });
 
-// MODIFIED: Added an 'icon' property to each menu item for the collapsed view
 const menuItems = [
   { id: 'sanctum', name: 'Sanctum / Home', icon: '🏠' },
   { id: 'research', name: 'Research', icon: '🔬' },
@@ -360,4 +530,7 @@ const menuItems = [
 main {
     height: 100%;
 }
+/* Scrollbar fallback styles for themed components */
+.custom-scrollbar.bg-white::-webkit-scrollbar-track { background: #f0f0f0; }
+.custom-scrollbar.bg-white::-webkit-scrollbar-thumb { background-color: #a07d3a; border: 3px solid #f0f0f0; }
 </style>
