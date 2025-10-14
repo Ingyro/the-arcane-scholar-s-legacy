@@ -5,7 +5,9 @@
       <div class="flex items-center space-x-4">
         <span class="text-lg">Prestige: <span class="font-bold text-yellow-100 text-2xl">{{ characterDetails.prestige }}</span></span>
         <span class="text-lg">Skill Points: <span class="font-bold text-yellow-100 text-2xl">{{ skillPoints }}</span></span>
-        <span class="text-lg">Knowledge: <span class="font-bold text-yellow-100 text-2xl">{{ displayedKnowledge.toFixed(2) }}</span></span>
+        
+        <!-- UPDATED: Using formatLargeNumber for Knowledge display -->
+        <span class="text-lg">Knowledge: <span class="font-bold text-yellow-100 text-2xl">{{ formatLargeNumber(displayedKnowledge) }}</span></span>
 
         <button @click="saveGameProgress"
                 :disabled="saving"
@@ -140,6 +142,56 @@ const skillPoints = ref(0); // <-- NEW: Track Skill Points
 const auth = getAuth();
 const db = getFirestore();
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+// --- UTILITY: Format Large Numbers (K, M, B, T) ---
+/**
+ * Formats a large number into a concise string (e.g., 1,234,567 -> 1.23M).
+ * Prioritizes showing a maximum of 4 characters before the unit letter.
+ * Keeps two decimal places for small, non-formatted numbers.
+ * @param {number} num - The number to format.
+ * @returns {string} The formatted string.
+ */
+const formatLargeNumber = (num) => {
+  if (num === null || num === undefined) return '0.00';
+  num = Number(num);
+  
+  const units = [
+    { value: 1e12, symbol: 'T' },
+    { value: 1e9, symbol: 'B' },
+    { value: 1e6, symbol: 'M' },
+    { value: 1e3, symbol: 'K' },
+  ];
+
+  for (let i = 0; i < units.length; i++) {
+    const { value, symbol } = units[i];
+    if (Math.abs(num) >= value) {
+      const scaled = num / value;
+      let formatted;
+
+      // Logic to keep max 4 characters before unit (e.g., 9.99, 99.9, 999)
+      if (scaled < 10) {
+        // e.g., 1.23T (4 digits: 1 . 2 3)
+        formatted = scaled.toFixed(2);
+      } else if (scaled < 100) {
+        // e.g., 12.3T (4 digits: 1 2 . 3)
+        formatted = scaled.toFixed(1);
+      } else {
+        // e.g., 123T (3 digits: 1 2 3)
+        formatted = Math.floor(scaled).toString();
+      }
+
+      // Remove unnecessary trailing zeros/decimals for cleanliness
+      formatted = formatted.replace(/\.00$/, '').replace(/(\.\d)0$/, '$1');
+      
+      return formatted + symbol;
+    }
+  }
+  
+  // Return as is if less than 1000, keeping the required decimal precision for small numbers
+  return num.toFixed(2); 
+};
+// --- END UTILITY ---
+
 
 // --- THEME LOGIC (Unchanged) ---
 const themeClasses = computed(() => {
