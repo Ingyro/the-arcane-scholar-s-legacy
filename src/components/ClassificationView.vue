@@ -11,12 +11,12 @@
     </p>
 
     <div v-if="!loading && !error" class="mb-8 p-4 rounded-lg border" :class="themeClasses.accentBorder">
-        <h3 class="text-xl font-bold mb-4">Faction Dominance Comparison (Percentage)</h3>
+        <h3 class="text-xl font-bold mb-4">Composite Faction Dominance (Percentage)</h3>
         
         <div class="bg-gray-800 p-6 rounded-lg shadow-inner">
-            <h4 class="text-lg font-semibold mb-4">Faction Share of Total Metrics</h4>
+            <h4 class="text-lg font-semibold mb-4">Total Weighted Dominance (Prestige 3x, Tier Sum 2x, Count 1x)</h4>
             
-            <bar-chart :data="factionDominanceStackedChartData" :options="{
+            <bar-chart :data="weightedDominanceChartData" :options="{
                 scales: {
                     // X-axis (value axis) must go up to 100
                     x: { 
@@ -25,12 +25,12 @@
                         stacked: true, 
                         title: { display: true, text: 'Percentage Dominance (%)' } 
                     },
-                    // Y-axis (category axis) shows the metrics
+                    // Y-axis (category axis) only has one bar
                     y: { stacked: true }
                 },
                 responsive: true,
                 maintainAspectRatio: false, 
-                height: '400px', // Set height for better viewing
+                height: '100px', // Smaller height for a single bar
                 indexAxis: 'y', // Make it a horizontal bar chart
                 plugins: { 
                     tooltip: { 
@@ -39,18 +39,13 @@
                             label: (context) => context.dataset.label + ': ' + context.parsed.x.toFixed(2) + '%'
                         } 
                     },
-                    legend: { 
-                        position: 'bottom',
-                        labels: {
-                            color: themeClasses.primaryText, // Use theme color for text
-                        }
-                    } 
+                    legend: { position: 'bottom' } 
                 }
             }"></bar-chart>
         </div>
         
         <p class="text-xs mt-4 text-gray-400">
-            *Data reflects the current filters applied above. **Prestige** is the highest priority metric, followed by **Tier Sum**, then **Scholar Count**.
+            *Dominance is calculated based on a composite score: (Prestige x3) + (Tier Sum x2) + (Scholar Count x1). Data reflects the current filters applied.
         </p>
     </div>
     <div class="flex flex-wrap gap-4 mb-6 p-4 rounded-lg border" :class="themeClasses.accentBorder">
@@ -157,7 +152,8 @@
 <script setup>
 import { defineProps, ref, computed, onMounted, onUnmounted } from 'vue';
 import { getAuth } from "firebase/auth";
-import { getFirestore, collection, onSnapshot, query } from "firebase/firestore";
+// 🚨 UPDATED IMPORT: Use collectionGroup for cross-user/subcollection querying
+import { getFirestore, collectionGroup, onSnapshot, query } from "firebase/firestore";
 
 // --- Props ---
 const props = defineProps({
@@ -174,6 +170,13 @@ const props = defineProps({
   }
 });
 
+// --- Constants ---
+const DOMINANCE_WEIGHTS = {
+    prestige: 3,
+    tierSum: 2,
+    count: 1,
+};
+
 // --- Firebase Setup (Using existing instances) ---
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 const db = getFirestore();
@@ -186,17 +189,17 @@ const characters = ref([]); // Raw data from Firestore
 const loading = ref(true);
 const error = ref(null);
 
-// Filter States (New)
+// Filter States
 const filterFaction = ref('');
 const filterSpecialty = ref('');
 const filterLocation = ref('');
 
-// Sort States (Unchanged)
+// Sort States
 const sortBy = ref('prestige');
 const sortDirection = ref('desc'); 
 
 
-// --- Firestore Data Fetching (Unchanged - fetches all data) ---
+// --- Firestore Data Fetching ---
 const fetchLeaderboard = () => {
   if (!auth.currentUser) {
     error.value = "You must be logged in to view the Classification.";
@@ -204,8 +207,9 @@ const fetchLeaderboard = () => {
     return;
   }
   
-  // Fetch ALL documents in the public leaderboard collection
-  const leaderboardCollectionRef = collection(db, `artifacts/${appId}/public/data/leaderboard`);
+  // 🚨 CRITICAL FIX: Use collectionGroup to query ALL 'leaderboard' subcollections
+  // This allows gathering characters from all players/paths across the database.
+  const leaderboardCollectionRef = collectionGroup(db, 'leaderboard');
   const q = query(leaderboardCollectionRef);
 
   loading.value = true;
@@ -214,12 +218,13 @@ const fetchLeaderboard = () => {
   unsubscribe = onSnapshot(q, (snapshot) => {
     try {
       const newCharacters = [];
+      // console.log(`Firestore Snapshot received. Document count: ${snapshot.size}`); // Debug check
       snapshot.forEach((doc) => {
         const charData = doc.data();
         newCharacters.push({
           id: doc.id,
-          // Calculate Tier (1-based index) for chart use (Index 0 + 1 = Tier 1)
-          currentTierIndex: charData.currentTierIndex || 0,
+          // currentTierIndex is 0-based, Tier is 1-based
+          currentTierIndex: charData.currentTierIndex || 0, 
           ...charData,
         });
       });
@@ -243,28 +248,18 @@ const toggleSortDirection = () => {
 };
 
 
-// --- Filtering and Sorting Logic (Combined Computed Property) ---
-
+// --- Filtering and Sorting Logic (Unchanged) ---
 const filteredAndSortedCharacters = computed(() => {
   // 1. FILTERING
   let filtered = characters.value.filter(char => {
     // Faction Filter
-    if (filterFaction.value && char.faction !== filterFaction.value) {
-      return false;
-    }
-    
+    if (filterFaction.value && char.faction !== filterFaction.value) { return false; }
     // Specialty Filter
-    if (filterSpecialty.value && char.specialty !== filterSpecialty.value) {
-      return false;
-    }
-    
+    if (filterSpecialty.value && char.specialty !== filterSpecialty.value) { return false; }
     // Location Filter
     const charLocation = char.location || '';
     const filterLoc = filterLocation.value;
-    
-    if (filterLoc && charLocation !== filterLoc) {
-      return false;
-    }
+    if (filterLoc && charLocation !== filterLoc) { return false; }
 
     return true; // Passes all filters
   });
@@ -275,13 +270,11 @@ const filteredAndSortedCharacters = computed(() => {
     const aValue = a[sortBy.value];
     const bValue = b[sortBy.value];
 
-    // Handle numeric comparison (Prestige, currentTierIndex)
     if (sortBy.value === 'prestige' || sortBy.value === 'currentTierIndex') {
       const comparison = (aValue || 0) - (bValue || 0);
       return sortDirection.value === 'asc' ? comparison : -comparison;
     } 
     
-    // Handle string comparison (Faction, Specialty, Name, Location)
     if (typeof aValue === 'string') {
       const comparison = (aValue || '').localeCompare(bValue || '');
       return sortDirection.value === 'asc' ? comparison : -comparison;
@@ -294,107 +287,77 @@ const filteredAndSortedCharacters = computed(() => {
 });
 
 
-// --- Faction Comparison Computed Properties (UPDATED for Stacked Percentage) ---
+// --- Faction Comparison Computed Properties (Single Weighted Dominance) ---
 
-// Process the filtered data to get chart-ready comparison data (Sums)
+// 1. Sum up all metrics by faction
 const factionComparisonData = computed(() => {
     const data = {
         Lumen: { count: 0, tierSum: 0, prestigeSum: 0 },
         Umbra: { count: 0, tierSum: 0, prestigeSum: 0 },
-        Other: { count: 0, tierSum: 0, prestigeSum: 0 }, // Catches characters with missing/unknown factions
+        Other: { count: 0, tierSum: 0, prestigeSum: 0 },
     };
 
     filteredAndSortedCharacters.value.forEach(char => {
-        // Use the 1-based tier for summation: (index 0 is Tier 1)
+        // Tier 1 is index 0, so Tier = index + 1
         const tier = (char.currentTierIndex || 0) + 1; 
         const prestige = char.prestige || 0;
 
-        if (char.faction === 'Lumen') {
-            data.Lumen.count++;
-            data.Lumen.tierSum += tier;
-            data.Lumen.prestigeSum += prestige;
-        } else if (char.faction === 'Umbra') {
-            data.Umbra.count++;
-            data.Umbra.tierSum += tier;
-            data.Umbra.prestigeSum += prestige;
-        } else {
-            // Uncategorized characters
-            data.Other.count++;
-            data.Other.tierSum += tier;
-            data.Other.prestigeSum += prestige;
-        }
+        const factionKey = (char.faction === 'Lumen' || char.faction === 'Umbra') ? char.faction : 'Other';
+        
+        data[factionKey].count++;
+        data[factionKey].tierSum += tier;
+        data[factionKey].prestigeSum += prestige;
     });
 
     return data;
 });
 
-/**
- * Helper function to calculate the dominance percentage for a single metric.
- * @param {string} metricKey - The key in factionComparisonData ('prestigeSum', 'tierSum', or 'count').
- * @returns {{lumenPct: number, umbraPct: number, otherPct: number}} Percentages.
- */
-const getFactionPercentages = (metricKey) => {
+// 2. Calculate the single weighted dominance percentage for the stacked bar
+const weightedDominanceChartData = computed(() => {
     const comparison = factionComparisonData.value;
-    
-    // Calculate Grand Total of the metric across all factions
-    const total = comparison.Lumen[metricKey] + comparison.Umbra[metricKey] + comparison.Other[metricKey];
+    const weights = DOMINANCE_WEIGHTS;
 
-    if (total === 0) {
-        return { lumenPct: 0, umbraPct: 0, otherPct: 0 };
-    }
-
-    const lumenPct = (comparison.Lumen[metricKey] / total) * 100;
-    const umbraPct = (comparison.Umbra[metricKey] / total) * 100;
-    const otherPct = (comparison.Other[metricKey] / total) * 100;
-    
-    // Round to 2 decimal places for presentation
-    return { 
-        lumenPct: Math.round(lumenPct * 100) / 100, 
-        umbraPct: Math.round(umbraPct * 100) / 100,
-        otherPct: Math.round(otherPct * 100) / 100
+    const calculateWeightedScore = (factionData) => {
+        return (factionData.prestigeSum * weights.prestige) + 
+               (factionData.tierSum * weights.tierSum) + 
+               (factionData.count * weights.count);
     };
-};
 
+    const lumenScore = calculateWeightedScore(comparison.Lumen);
+    const umbraScore = calculateWeightedScore(comparison.Umbra);
+    const otherScore = calculateWeightedScore(comparison.Other);
 
-// FORMATTED DATA FOR THE SINGLE STACKED BAR CHART
-const factionDominanceStackedChartData = computed(() => {
-    const prestigeData = getFactionPercentages('prestigeSum');
-    const tierData = getFactionPercentages('tierSum');
-    const countData = getFactionPercentages('count');
+    const grandTotalScore = lumenScore + umbraScore + otherScore;
+
+    if (grandTotalScore === 0) {
+        return []; 
+    }
     
+    // Calculate Dominance Percentage
+    const lumenPct = (lumenScore / grandTotalScore) * 100;
+    const umbraPct = (umbraScore / grandTotalScore) * 100;
+    const otherPct = (otherScore / grandTotalScore) * 100;
+
+    // Format for Chartkick single stacked bar
     const chartData = [
         {
             name: 'Lumen', 
-            data: [
-                ['Prestige Dominance', prestigeData.lumenPct],
-                ['Tier Sum Dominance', tierData.lumenPct],
-                ['Scholar Count Dominance', countData.lumenPct],
-            ],
-            // Custom color for Lumen (Yellow/Gold)
-            backgroundColor: '#FFD700', 
+            data: [['Total Weighted Dominance', Math.round(lumenPct * 100) / 100]],
+            backgroundColor: '#FFD700', // Gold/Yellow
         },
         {
             name: 'Umbra',
-            data: [
-                ['Prestige Dominance', prestigeData.umbraPct],
-                ['Tier Sum Dominance', tierData.umbraPct],
-                ['Scholar Count Dominance', countData.umbraPct],
-            ],
-            // Custom color for Umbra (Violet/Purple)
-            backgroundColor: '#8A2BE2', 
+            data: [['Total Weighted Dominance', Math.round(umbraPct * 100) / 100]],
+            backgroundColor: '#8A2BE2', // Violet/Purple
         },
     ];
 
-    // Only include the 'Other' series if it contributes significantly
-    if (prestigeData.otherPct > 0.1 || tierData.otherPct > 0.1 || countData.otherPct > 0.1) {
-         chartData.push({
+    // Include 'Other' if it has a non-negligible score
+    if (otherPct > 0.01) {
+        chartData.push({
             name: 'Other/Unassigned',
-            data: [
-                ['Prestige Dominance', prestigeData.otherPct],
-                ['Tier Sum Dominance', tierData.otherPct],
-                ['Scholar Count Dominance', countData.otherPct],
-            ],
-            backgroundColor: '#4A5568', // Dark Gray for 'Other'
+            data: [['Total Weighted Dominance', Math.round(otherPct * 100) / 100]],
+            backgroundColor: '#4A5568', // Dark Gray
         });
     }
 
