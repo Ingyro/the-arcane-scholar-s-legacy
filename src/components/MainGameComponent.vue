@@ -6,7 +6,6 @@
         <span class="text-lg">Prestige: <span class="font-bold text-yellow-100 text-2xl">{{ characterDetails.prestige }}</span></span>
         <span class="text-lg">Skill Points: <span class="font-bold text-yellow-100 text-2xl">{{ skillPoints }}</span></span>
         
-        <!-- UPDATED: Using formatLargeNumber for Knowledge display -->
         <span class="text-lg">Knowledge: <span class="font-bold text-yellow-100 text-2xl">{{ formatLargeNumber(displayedKnowledge) }}</span></span>
 
         <button @click="saveGameProgress"
@@ -130,14 +129,15 @@ const emit = defineEmits(['returnToCharacterSelect']);
 const knowledge = ref(0);
 const displayedKnowledge = ref(0);
 
-const characterDetails = ref({ name: '', faction: '', specialty: '', prestige: 0 });
+// ADDED location to characterDetails
+const characterDetails = ref({ name: '', faction: '', specialty: '', prestige: 0, location: '' });
 
 const multiplierTiers = ref([]);
 const activeMenu = ref('sanctum');
 const saving = ref(false);
 const isMenuCollapsed = ref(false); 
 const currentTierIndex = ref(0); 
-const skillPoints = ref(0); // <-- NEW: Track Skill Points
+const skillPoints = ref(0); 
 
 const auth = getAuth();
 const db = getFirestore();
@@ -269,7 +269,7 @@ const prestigeMultiplier = computed(() => {
 });
 // --- END PRESTIGE MULTIPLIER ---
 
-// --- DYNAMIC getTierName (Unchanged) ---
+// --- DYNAMIC getTierName (Crucial function, replicated in ClassificationView) ---
 const getTierName = (tierIndex) => {
     const { faction, specialty } = characterDetails.value;
     
@@ -492,13 +492,16 @@ const advanceToNextTier = () => {
 };
 // --- END MODIFIED advanceToNextTier ---
 
-// --- Save Game Progress (Updated for skillPoints) ---
+// --- Save Game Progress (UPDATED for Leaderboard with currentTierIndex) ---
 const saveGameProgress = async () => {
   saving.value = true;
   if (!auth.currentUser || !props.characterId) return;
-  const characterDocRef = doc(db, `artifacts/${appId}/users/${auth.currentUser.uid}/characters`, props.characterId);
-  
-  const saveData = {
+  const userId = auth.currentUser.uid;
+  const characterDocRef = doc(db, `artifacts/${appId}/users/${userId}/characters`, props.characterId);
+  const leaderboardDocRef = doc(db, `artifacts/${appId}/public/data/leaderboard`, props.characterId); // New Ref
+
+  // Private Character Save Data
+  const privateSaveData = {
     knowledge: knowledge.value,
     prestige: characterDetails.value.prestige,
     currentTierIndex: currentTierIndex.value, 
@@ -506,12 +509,29 @@ const saveGameProgress = async () => {
         unlocked: tier.unlocked,
         levels: tier.multipliers.map(m => m.level)
     })),
-    skillPoints: skillPoints.value, // <-- NEW: Save Skill Points
+    skillPoints: skillPoints.value, 
     lastSaved: Timestamp.now(),
   };
 
+  // Public Leaderboard Data (must match the fields needed by ClassificationView)
+  const publicLeaderboardData = {
+    name: characterDetails.value.name,
+    prestige: characterDetails.value.prestige,
+    faction: characterDetails.value.faction,
+    specialty: characterDetails.value.specialty,
+    location: characterDetails.value.location, 
+    userId: userId, 
+    currentTierIndex: currentTierIndex.value, // <-- NEW: Include Tier Index
+    lastUpdated: Timestamp.now(),
+  };
+
   try {
-    await setDoc(characterDocRef, saveData, { merge: true });
+    // 1. Save Private Game State
+    await setDoc(characterDocRef, privateSaveData, { merge: true });
+
+    // 2. Save Public Leaderboard Entry
+    await setDoc(leaderboardDocRef, publicLeaderboardData, { merge: true });
+    
   } catch (error) {
     console.error('Error saving game progress:', error);
   } finally {
@@ -520,7 +540,7 @@ const saveGameProgress = async () => {
 };
 // --- END Save Game Progress ---
 
-// --- Load Game Progress (Updated for skillPoints) ---
+// --- Load Game Progress (Updated for skillPoints and location) ---
 const loadGameProgress = async () => {
   if (!auth.currentUser || !props.characterId) return;
   const characterDocRef = doc(db, `artifacts/${appId}/users/${auth.currentUser.uid}/characters`, props.characterId);
@@ -535,9 +555,10 @@ const loadGameProgress = async () => {
       characterDetails.value.faction = data.faction || '';
       characterDetails.value.specialty = data.specialty || '';
       characterDetails.value.prestige = data.prestige || 0;
+      characterDetails.value.location = data.location || ''; 
       
       // Load new state variables
-      skillPoints.value = data.skillPoints || 0; // <-- NEW: Load Skill Points
+      skillPoints.value = data.skillPoints || 0; 
       currentTierIndex.value = data.currentTierIndex || 0;
 
       // Regenerate tiers now (this incorporates the loaded prestige level)

@@ -2,7 +2,6 @@
   <div class="flex flex-col items-center justify-center h-screen w-full bg-gray-950 text-yellow-300 p-4 sm:p-6 md:p-8 overflow-y-auto">
     <h2 class="text-4xl font-serif text-yellow-100 mb-8 text-center leading-tight">Forge Your Legacy</h2>
 
-    <!-- Loading/Error Display -->
     <div v-if="loading" class="mt-4 text-yellow-400">Loading...</div>
     <div v-if="error" class="mt-4 text-red-500 bg-red-100 p-3 rounded-md">{{ error }}</div>
 
@@ -10,10 +9,8 @@
       <p class="text-lg text-yellow-300">Loading lore...</p>
     </div>
 
-    <!-- Step 1: Read Chapter 1 & Select Faction -->
     <div v-else-if="currentStep === 'chapter1' || currentStep === 'factionSelect'" class="w-full max-w-3xl bg-violet-900 p-6 rounded-xl shadow-2xl border border-yellow-700">
       <h3 class="text-2xl font-serif text-yellow-100 mb-4 border-b border-yellow-600 pb-2">Chapter 1: The First Whisper</h3>
-      <!-- DISPLAY PARSED MARKDOWN HERE -->
       <div v-html="lore.chapter1" class="text-lg text-yellow-100/90 leading-relaxed mb-6 max-h-80 overflow-y-auto markdown-content"></div>
       
       <div class="space-y-4">
@@ -44,10 +41,8 @@
       </div>
     </div>
 
-    <!-- Step 2: Read Chapter 2 & Select Specialty -->
     <div v-else-if="currentStep === 'chapter2' || currentStep === 'specialtySelect'" class="w-full max-w-3xl bg-violet-900 p-6 rounded-xl shadow-2xl border border-yellow-700">
       <h3 class="text-2xl font-serif text-yellow-100 mb-4 border-b border-yellow-600 pb-2">Chapter 2: The Second Whisper</h3>
-      <!-- DISPLAY PARSED MARKDOWN HERE -->
       <div v-html="lore.chapter2" class="text-lg text-yellow-100/90 leading-relaxed mb-6 max-h-80 overflow-y-auto markdown-content"></div>
       
       <div class="space-y-4">
@@ -78,7 +73,6 @@
       </div>
     </div>
 
-    <!-- Step 3: Assign Name and Create Character -->
     <div v-else-if="currentStep === 'nameAssign'" class="w-full max-w-3xl bg-violet-900 p-6 rounded-xl shadow-2xl border border-yellow-700">
       <h3 class="text-2xl font-serif text-yellow-100 mb-4 border-b border-yellow-600 pb-2">Assign Your Scholar Name</h3>
       <p class="text-lg text-yellow-300 mb-4">
@@ -87,6 +81,14 @@
       <p class="text-sm text-yellow-400 mb-4 italic">
         Faction: {{ newCharacter.faction }} | Specialty: {{ newCharacter.specialty }}
       </p>
+
+      <p class="text-sm text-yellow-400 mb-4 italic">
+        Current Location: 
+        <span v-if="location.loading" class="text-yellow-500">Detecting location...</span>
+        <span v-else-if="location.name">{{ location.name }}</span>
+        <span v-else class="text-red-400">Location Unknown (This will be 'Unknown' on the global leaderboards)</span>
+      </p>
+
       <form @submit.prevent="createCharacter" class="space-y-4">
         <div>
           <label for="characterName" class="block text-lg text-yellow-300 mb-2">Scholar's Name:</label>
@@ -117,7 +119,7 @@
 import { ref, onMounted, defineEmits } from 'vue';
 import { getAuth } from 'firebase/auth';
 // Import necessary Firestore updates for the character count limit
-import { getFirestore, collection, addDoc, doc, updateDoc, increment } from 'firebase/firestore';
+import { getFirestore, collection, addDoc, doc, updateDoc, increment, setDoc } from 'firebase/firestore';
 
 const emit = defineEmits(['character-created', 'return-to-select']);
 
@@ -132,7 +134,7 @@ const currentStep = ref('chapter1');
 const lore = ref({ chapter1: '', chapter2: '' });
 const loreLoaded = ref(false);
 
-// Character data
+// Character data (ADDED location)
 const newCharacter = ref({
   name: '',
   faction: '',
@@ -140,7 +142,72 @@ const newCharacter = ref({
   knowledge: 0,
   resources: {},
   research: {},
+  prestige: 0,
+  skillPoints: 0,
+  location: 'Unknown', // Default value
 });
+
+// NEW: Location State
+const location = ref({
+  name: '',
+  loading: false,
+  fetched: false,
+});
+
+// --- NEW: Fetch Location Function ---
+const fetchUserLocation = async (userId) => {
+    if (location.value.fetched) return; 
+
+    // 1. Check if location is already saved in the user profile
+    try {
+        const userDocRef = doc(db, `artifacts/${appId}/users/${userId}/profile/user_data`);
+        const docSnap = await getDoc(userDocRef);
+        if (docSnap.exists() && docSnap.data().location) {
+            location.value.name = docSnap.data().location;
+            location.value.fetched = true;
+            newCharacter.value.location = location.value.name;
+            console.log('Location loaded from profile:', location.value.name);
+            return;
+        }
+    } catch (e) {
+        console.error("Error reading user profile location:", e);
+    }
+
+    // 2. If not saved, fetch from public API
+    location.value.loading = true;
+    try {
+        const response = await fetch('https://api.ip-api.com/json/?fields=city,regionName,country');
+        if (!response.ok) throw new Error('Failed to fetch location data');
+        
+        const data = await response.json();
+        let locationName = 'Unknown';
+
+        // Prioritize: City, then Region, then Country
+        if (data.city && data.city !== '') {
+            locationName = data.city;
+        } else if (data.regionName && data.regionName !== '') {
+            locationName = data.regionName;
+        } else if (data.country && data.country !== '') {
+            locationName = data.country;
+        }
+
+        location.value.name = locationName;
+        newCharacter.value.location = locationName; // Set the default location for the new character
+        location.value.fetched = true;
+        
+        // Save the fetched location to the user profile for future use (if successful)
+        const userDocRef = doc(db, `artifacts/${appId}/users/${userId}/profile/user_data`);
+        await setDoc(userDocRef, { location: locationName }, { merge: true });
+
+    } catch (e) {
+        console.error("Location API error:", e);
+        location.value.name = 'Unknown';
+        newCharacter.value.location = 'Unknown';
+    } finally {
+        location.value.loading = false;
+    }
+};
+// --- END NEW: Fetch Location Function ---
 
 
 // --- UPDATED MARKDOWN PARSER FUNCTION (Now includes table parsing!) ---
@@ -235,10 +302,6 @@ const parseMarkdown = (markdown) => {
             if (tableLines.length === 0 && isSeparator) {
                  // Skip leading separator line if no header was found yet. 
                  // However, the MD files have the header first, then separator, then body. 
-                 // We only buffer if it's not a standalone separator, or if the buffer is empty
-                 // and it's the start of a potential table. 
-                 
-                 // Given the file structure: Header, Separator, Row 1, Row 2...
                  // We always buffer lines that look like table structure.
                  tableLines.push(trimmedLine);
                  
@@ -377,6 +440,11 @@ const fetchLore = async () => {
 
 onMounted(() => {
   fetchLore();
+  
+  // Call location fetch on mount
+  if (auth.currentUser) {
+    fetchUserLocation(auth.currentUser.uid);
+  }
 });
 
 // UI Logic
@@ -396,7 +464,7 @@ const goToNextStep = () => {
   }
 };
 
-// Character Creation Logic
+// Character Creation Logic (UPDATED for location)
 const createCharacter = async () => {
   const userId = auth.currentUser?.uid;
   if (!userId) {
@@ -414,6 +482,10 @@ const createCharacter = async () => {
   try {
     // 1. Create the character document
     const characterCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/characters`);
+    
+    // Ensure the final location is in the character object before saving
+    newCharacter.value.location = location.value.name || 'Unknown';
+    
     const docRef = await addDoc(characterCollectionRef, newCharacter.value);
     
     // 2. IMPORTANT: Increment the character count in the user's profile document
@@ -422,6 +494,19 @@ const createCharacter = async () => {
     await updateDoc(userDocRef, {
         characterCount: increment(1)
     }, { merge: true });
+
+    // 3. Create the public leaderboard entry immediately after character creation
+    const leaderboardDocRef = doc(db, `artifacts/${appId}/public/data/leaderboard`, docRef.id);
+    const publicLeaderboardData = {
+        name: newCharacter.value.name,
+        prestige: newCharacter.value.prestige,
+        faction: newCharacter.value.faction,
+        specialty: newCharacter.value.specialty,
+        location: newCharacter.value.location,
+        userId: userId, // Required by Firebase rule
+    };
+    await setDoc(leaderboardDocRef, publicLeaderboardData, { merge: true });
+
 
     console.log("New character created with ID:", docRef.id);
     emit('character-created', docRef.id);
