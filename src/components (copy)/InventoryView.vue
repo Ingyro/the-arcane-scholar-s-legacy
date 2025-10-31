@@ -1,5 +1,5 @@
 <template>
-  <section :class="[themeClasses.primaryBg, themeClasses.primaryText, themeClasses.accentBorder, 'p-6 rounded-lg shadow-xl border', themeClasses.shadowColor]">
+  <section :class="[themeClasses.primaryBg, themeClasses.primaryText, themeClasses.accentBorder, 'p-6 rounded-lg shadow-xl border']">
     
     <h2 class="text-3xl font-serif mb-6 border-b pb-3" 
         :class="[themeClasses.primaryText, themeClasses.accentBorder]">
@@ -22,26 +22,13 @@ const props = defineProps({
   themeClasses: { 
     type: Object, 
     required: true,
-    // UPDATED default to match new theme object structure
+    // Add a default for safety, matching the original violet/yellow theme
     default: () => ({ 
-      primaryBg: 'bg-white',
-      primaryText: 'text-black',
-      headerBg: 'bg-gray-800',
-      headerText: 'text-white',
-      accentBorder: 'border-gray-400',
-      sidebarBg: 'bg-gray-100',
-      activeMenuBg: 'bg-gray-300',
-      activeMenuText: 'text-black',
-      shadowColor: 'shadow-gray-500/30',
-      buttonBg: 'bg-blue-600',
-      buttonText: 'text-white',
-      buttonHover: 'hover:bg-blue-700',
-      buttonSecondaryBg: 'bg-gray-500',
-      buttonSecondaryText: 'text-white',
-      buttonSecondaryHover: 'hover:bg-gray-600',
-      buttonUrgentBg: 'bg-red-600',
-      buttonUrgentText: 'text-white',
-      buttonUrgentHover: 'hover:bg-red-700',
+      primaryBg: 'bg-gray-950',
+      primaryText: 'text-yellow-300', 
+      accentBorder: 'border-yellow-600',
+      sidebarBg: 'bg-violet-950',
+      activeMenuBg: 'bg-green-800'
     })
   }
 });

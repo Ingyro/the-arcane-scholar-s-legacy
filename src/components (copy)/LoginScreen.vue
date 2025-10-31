@@ -1,15 +1,16 @@
 <template>
-  <!-- Updated to a clean Black & White (Light) theme -->
-  <div class="flex flex-col items-center justify-center h-screen bg-white p-4 sm:p-6 md:p-8">
-    <h1 class="text-3xl sm:text-4xl font-bold text-black mb-6 text-center">The Arcane Scholar’s Legacy</h1>
+  <div class="flex flex-col items-center justify-center h-screen bg-gray-100 p-4 sm:p-6 md:p-8">
+    <h1 class="text-3xl sm:text-4xl font-bold text-gray-800 mb-6 text-center">The Arcane Scholar’s Legacy</h1>
 
     <!-- Login Buttons Container -->
     <div class="flex flex-col space-y-4 w-full max-w-sm">
       <button @click="handleGoogleLogin"
-              class="bg-black hover:bg-gray-800 text-white font-bold py-3 px-6 rounded-lg shadow-md transition duration-300 ease-in-out flex items-center justify-center text-lg">
+              class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg shadow-md transition duration-300 ease-in-out flex items-center justify-center text-lg">
         <img src="https://www.google.com/favicon.ico" alt="Google Logo" class="h-7 w-7 mr-3" />
         Sign in with Google
       </button>
+
+      <!-- Facebook login button removed as requested -->
     </div>
 
     <!-- Loading Indicator -->
@@ -65,5 +66,9 @@ const handleGoogleLogin = async () => {
 </script>
 
 <style scoped>
-/* No custom CSS needed */
+/*
+  No custom CSS needed here as Tailwind CSS utility classes are used directly in the template.
+  If you need very specific, complex styles that Tailwind doesn't easily provide, you can
+  add them here. The 'scoped' attribute ensures these styles only apply to this component.
+*/
 </style>

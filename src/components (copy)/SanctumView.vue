@@ -75,7 +75,8 @@
             <template v-if="item.level < item.maxLevel">
               <button @click="emit('buy-multiplier', { tierIndex: props.currentTierIndex, multiplierIndex })"
                       :disabled="knowledge < getNextLevelCost(props.currentTierIndex, multiplierIndex)"
-                      :class="[props.themeClasses.activeMenuBg, 'mt-auto text-white py-2 px-4 rounded-md text-base font-bold transition duration-300 ease-in-out', knowledge < getNextLevelCost(props.currentTierIndex, multiplierIndex) ? 'opacity-50 cursor-not-allowed' : '']">
+                      :class="['mt-auto bg-blue-700 hover:bg-blue-800 text-white py-2 px-4 rounded-md text-base font-bold transition duration-300 ease-in-out',
+                               knowledge < getNextLevelCost(props.currentTierIndex, multiplierIndex) ? 'opacity-50 cursor-not-allowed' : '']">
                 Buy Upgrade (Level {{ item.level + 1 }})
               </button>
             </template>

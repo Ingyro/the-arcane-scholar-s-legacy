@@ -1,27 +1,26 @@
 <template>
   <div :class="[themeClasses.primaryBg, themeClasses.primaryText, 'flex flex-col h-screen w-full font-sans overflow-hidden']">
-    <header :class="[themeClasses.headerBg, themeClasses.headerText, 'shadow-lg border-b', themeClasses.accentBorder, themeClasses.shadowColor, 'flex items-center justify-between p-4']">
-      <!-- Title and stats now inherit text color from headerText -->
-      <h1 class="text-3xl font-serif tracking-wide">The Arcane Scholar’s Legacy || {{ characterDetails.name }}</h1>
+    <header :class="[themeClasses.headerBg, 'shadow-lg border-b', themeClasses.accentBorder, 'flex items-center justify-between p-4']">
+      <h1 class="text-3xl font-serif text-yellow-100 tracking-wide">The Arcane Scholar’s Legacy</h1>
       <div class="flex items-center space-x-4">
-        <span class="text-lg">Prestige: <span class="font-bold text-2xl">{{ characterDetails.prestige }}</span></span>
-        <span class="text-lg">Skill Points: <span class="font-bold text-2xl">{{ skillPoints }}</span></span>
-        <span class="text-lg">Knowledge: <span class="font-bold text-2xl">{{ formatLargeNumber(displayedKnowledge) }}</span></span>
+        <span class="text-lg">Prestige: <span class="font-bold text-yellow-100 text-2xl">{{ characterDetails.prestige }}</span></span>
+        <span class="text-lg">Skill Points: <span class="font-bold text-yellow-100 text-2xl">{{ skillPoints }}</span></span>
+        
+        <span class="text-lg">Knowledge: <span class="font-bold text-yellow-100 text-2xl">{{ formatLargeNumber(displayedKnowledge) }}</span></span>
 
-        <!-- Buttons now use dynamic theme classes -->
         <button @click="saveGameProgress"
                 :disabled="saving"
-                :class="[themeClasses.buttonBg, themeClasses.buttonText, themeClasses.buttonHover, 'font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed']">
+                class="bg-blue-700 hover:bg-blue-800 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed">
           {{ saving ? 'Saving...' : 'Save Progress' }}
         </button>
 
         <button @click="returnToCharacterSelect"
-                :class="[themeClasses.buttonSecondaryBg, themeClasses.buttonSecondaryText, themeClasses.buttonSecondaryHover, 'font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out']">
+                class="bg-gray-700 hover:bg-gray-800 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out">
           Back to Characters
         </button>
 
         <button @click="handleLogout"
-                :class="[themeClasses.buttonUrgentBg, themeClasses.buttonUrgentText, themeClasses.buttonUrgentHover, 'font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out']">
+                class="bg-red-700 hover:bg-red-800 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out">
           Log Out
         </button>
       </div>
@@ -34,8 +33,7 @@
         
         <div class="flex items-center" :class="isMenuCollapsed ? 'justify-center' : 'justify-between'">
           
-          <!-- Menu title inherits text color -->
-          <h3 :class="['text-xl font-serif pb-2 mb-4 transition-opacity border-b', themeClasses.accentBorder, themeClasses.primaryText,
+          <h3 :class="['text-xl font-serif text-yellow-100 pb-2 mb-4 transition-opacity border-b', themeClasses.accentBorder,
                        isMenuCollapsed ? 'opacity-0 h-0 p-0 overflow-hidden' : 'opacity-100']">
             Sanctum Menu
           </h3>
@@ -55,7 +53,8 @@
         <button v-for="menuItem in menuItems" :key="menuItem.id"
                 @click="activeMenu = menuItem.id"
                 :class="['text-left py-2 rounded-lg transition duration-200 ease-in-out flex items-center',
-                         activeMenu === menuItem.id ? [themeClasses.activeMenuBg, themeClasses.activeMenuText, 'shadow-inner'] : ['hover:opacity-80', themeClasses.primaryText],
+                         activeMenu === menuItem.id ? [themeClasses.activeMenuBg, themeClasses.primaryText, 'shadow-inner'] : 'hover:opacity-80',
+                         themeClasses.primaryText,
                          isMenuCollapsed ? 'justify-center px-0' : 'px-4 space-x-3']">
           
           <span :class="['text-2xl flex-shrink-0', isMenuCollapsed ? 'mx-auto' : '']" :title="isMenuCollapsed ? menuItem.name : ''">
@@ -69,7 +68,6 @@
       </nav>
 
       <main :class="['flex-1 p-6 overflow-y-auto custom-scrollbar', themeClasses.primaryBg]">
-        <!-- All child components now receive the updated themeClasses prop -->
         <SanctumView
           v-if="activeMenu === 'sanctum'"
           :knowledge="knowledge"
@@ -146,6 +144,13 @@ const db = getFirestore();
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
 // --- UTILITY: Format Large Numbers (K, M, B, T) ---
+/**
+ * Formats a large number into a concise string (e.g., 1,234,567 -> 1.23M).
+ * Prioritizes showing a maximum of 4 characters before the unit letter.
+ * Keeps two decimal places for small, non-formatted numbers.
+ * @param {number} num - The number to format.
+ * @returns {string} The formatted string.
+ */
 const formatLargeNumber = (num) => {
   if (num === null || num === undefined) return '0.00';
   num = Number(num);
@@ -163,158 +168,94 @@ const formatLargeNumber = (num) => {
       const scaled = num / value;
       let formatted;
 
+      // Logic to keep max 4 characters before unit (e.g., 9.99, 99.9, 999)
       if (scaled < 10) {
+        // e.g., 1.23T (4 digits: 1 . 2 3)
         formatted = scaled.toFixed(2);
       } else if (scaled < 100) {
+        // e.g., 12.3T (4 digits: 1 2 . 3)
         formatted = scaled.toFixed(1);
       } else {
+        // e.g., 123T (3 digits: 1 2 3)
         formatted = Math.floor(scaled).toString();
       }
 
+      // Remove unnecessary trailing zeros/decimals for cleanliness
       formatted = formatted.replace(/\.00$/, '').replace(/(\.\d)0$/, '$1');
       
       return formatted + symbol;
     }
   }
   
+  // Return as is if less than 1000, keeping the required decimal precision for small numbers
   return num.toFixed(2); 
 };
 // --- END UTILITY ---
 
 
-// --- NEW THEME LOGIC ---
+// --- THEME LOGIC (Unchanged) ---
 const themeClasses = computed(() => {
   const { faction, specialty } = characterDetails.value;
+  
+  let primaryBg = 'bg-gray-950';
+  let primaryText = 'text-yellow-300';
+  let headerBg = 'bg-violet-900';
+  let accentBorder = 'border-yellow-600';
+  let sidebarBg = 'bg-violet-950';
+  let activeMenuBg = 'bg-green-800'; 
 
-  // 1. Default Theme (Fallback)
-  let theme = {
-    primaryBg: 'bg-white',
-    primaryText: 'text-black',
-    headerBg: 'bg-gray-800',
-    headerText: 'text-white',
-    accentBorder: 'border-gray-400',
-    sidebarBg: 'bg-gray-100',
-    activeMenuBg: 'bg-gray-300',
-    activeMenuText: 'text-black',
-    shadowColor: 'shadow-gray-500/30',
-    // Buttons
-    buttonBg: 'bg-blue-600',
-    buttonText: 'text-white',
-    buttonHover: 'hover:bg-blue-700',
-    buttonSecondaryBg: 'bg-gray-500',
-    buttonSecondaryText: 'text-white',
-    buttonSecondaryHover: 'hover:bg-gray-600',
-    buttonUrgentBg: 'bg-red-600',
-    buttonUrgentText: 'text-white',
-    buttonUrgentHover: 'hover:bg-red-700',
-  };
-
-  // 2. Role-Based Palettes
   if (faction === 'Lumen') {
-    if (specialty === 'Alchemist') {
-      // Palette: #13c2eb, #bd895b, #fc963a, #5e9aa7, #7d6b5b
-      // SWAPPED: Button is now Orange, Active Menu is Cyan
-      theme = {
-        primaryBg: 'bg-white',
-        primaryText: 'text-[#7d6b5b]', // Darkest brown for text
-        headerBg: 'bg-[#13c2eb]',      // Cyan blue for header
-        headerText: 'text-white',
-        accentBorder: 'border-[#bd895b]', // Brown for borders
-        sidebarBg: 'bg-gray-50',         // Off-white sidebar
-        activeMenuBg: 'bg-[#13c2eb]',  // Cyan for active
-        activeMenuText: 'text-white',
-        shadowColor: 'shadow-[#13c2eb]/30', // Cyan shadow
-        // Buttons
-        buttonBg: 'bg-[#fc963a]', // Orange button
-        buttonText: 'text-white',
-        buttonHover: 'hover:bg-[#e0862a]', // Darker orange
-        buttonSecondaryBg: 'bg-[#7d6b5b]',
-        buttonSecondaryText: 'text-white',
-        buttonSecondaryHover: 'hover:bg-[#6b5a4a]',
-        buttonUrgentBg: 'bg-red-600',
-        buttonUrgentText: 'text-white',
-        buttonUrgentHover: 'hover:bg-red-700',
-      };
-    } else if (specialty === 'Arcane') {
-      // Palette: #eea221, #5b8abd, #3a98fc, #a78d5e, #5b6c7d
-      // SWAPPED: Button is now Gold, Active Menu is Blue
-      theme = {
-        primaryBg: 'bg-white',
-        primaryText: 'text-[#5b6c7d]', // Dark grey-blue for text
-        headerBg: 'bg-[#eea221]',      // Same for header
-        headerText: 'text-white',
-        accentBorder: 'border-[#a78d5e]', // Muted gold for borders
-        sidebarBg: 'bg-gray-50',
-        activeMenuBg: 'bg-[#3a98fc]',  // Bright blue for active
-        activeMenuText: 'text-white',
-        shadowColor: 'shadow-[#3a98fc]/30', // Bright blue shadow
-        // Buttons
-        buttonBg: 'bg-[#3a98fc]', // Gold button
-        buttonText: 'text-white', // Gold needs black text
-        buttonHover: 'hover:bg-[#3386DF]', // Darker blue
-        buttonSecondaryBg: 'bg-[#5b8abd]',
-        buttonSecondaryText: 'text-white',
-        buttonSecondaryHover: 'hover:bg-[#4a77a8]',
-        buttonUrgentBg: 'bg-red-600',
-        buttonUrgentText: 'text-white',
-        buttonUrgentHover: 'hover:bg-red-700',
-      };
+    if (specialty === 'Arcane') {
+      primaryBg = 'bg-white';
+      primaryText = 'text-blue-900';
+      headerBg = 'bg-amber-500';
+      accentBorder = 'border-blue-500';
+      sidebarBg = 'bg-blue-50';
+      activeMenuBg = 'bg-blue-300';
+    } else if (specialty === 'Alchemist') {
+      primaryBg = 'bg-gray-50';
+      primaryText = 'text-green-900';
+      headerBg = 'bg-lime-600';
+      accentBorder = 'border-green-700';
+      sidebarBg = 'bg-lime-50';
+      activeMenuBg = 'bg-lime-300';
+    } else {
+        primaryBg = 'bg-gray-100';
+        primaryText = 'text-gray-800';
+        headerBg = 'bg-amber-500';
+        accentBorder = 'border-amber-700';
+        sidebarBg = 'bg-amber-100';
+        activeMenuBg = 'bg-amber-300';
     }
-  } else if (faction === 'Umbra') {
-    if (specialty === 'Alchemist') {
-      // Palette: #55cd4a, #704460, #b03f85, #415b3f, #332c30
-      // (Unchanged)
-      theme = {
-        primaryBg: 'bg-[#332c30]',      // Dark brown-grey bg
-        primaryText: 'text-{gray-200}',    // Off-white text
-        headerBg: 'bg-[#55cd4a]',      // Bright green header
-        headerText: 'text-[#b03f85]',    // Bright green header text
-        accentBorder: 'border-[#704460]', // Purple border
-        sidebarBg: 'bg-[#332c30]',      // Same as primary bg
-        activeMenuBg: 'bg-[#b03f85]',  // Bright magenta active
-        activeMenuText: 'text-white',
-        shadowColor: 'shadow-[#b03f85]/30', // Magenta shadow
-        // Buttons
-        buttonBg: 'bg-[#b03f85]',
-        buttonText: 'text-black',
-        buttonHover: 'hover:bg-[#93356F]',
-        buttonSecondaryBg: 'bg-[#704460]',
-        buttonSecondaryText: 'text-white',
-        buttonSecondaryHover: 'hover:bg-[#5f3951]',
-        buttonUrgentBg: 'bg-red-500', // Brighter red on dark bg
-        buttonUrgentText: 'text-white',
-        buttonUrgentHover: 'hover:bg-red-600',
-      };
-    } else if (specialty === 'Arcane') {
-      // Palette: #611462, #7fbd5b, #82fc3a, #a65ea6, #687d5b (fixed typo)
-      // (Unchanged)
-      theme = {
-        primaryBg: 'bg-[#687d5b]',    // Muted green bg
-        primaryText: 'text-black',
-        headerBg: 'bg-[#611462]',      // Deep purple header
-        headerText: 'text-[#82fc3a]',    // Bright lime header text
-        accentBorder: 'border-[#a65ea6]', // Lighter purple border
-        sidebarBg: 'bg-[#687d5b]',
-        activeMenuBg: 'bg-[#7fbd5b]',  // Muted green active
-        activeMenuText: 'text-black',
-        shadowColor: 'shadow-[#82fc3a]/30', // Lime shadow
-        // Buttons
-        buttonBg: 'bg-[#82fc3a]',
-        buttonText: 'text-black',
-        buttonHover: 'hover:bg-[#73e334]',
-        buttonSecondaryBg: 'bg-[#687d5b]',
-        buttonSecondaryText: 'text-white',
-        buttonSecondaryHover: 'hover:bg-[#56684a]',
-        buttonUrgentBg: 'bg-red-500',
-        buttonUrgentText: 'text-white',
-        buttonUrgentHover: 'hover:bg-red-600',
-      };
+  } 
+  else if (faction === 'Umbra') {
+    if (specialty === 'Arcane') {
+      primaryBg = 'bg-black';
+      primaryText = 'text-lime-400';
+      headerBg = 'bg-purple-950';
+      accentBorder = 'border-lime-500';
+      sidebarBg = 'bg-purple-900';
+      activeMenuBg = 'bg-lime-700';
+    } else if (specialty === 'Alchemist') {
+      primaryBg = 'bg-red-950';
+      primaryText = 'text-red-300';
+      headerBg = 'bg-red-800';
+      accentBorder = 'border-red-600';
+      sidebarBg = 'bg-red-900';
+      activeMenuBg = 'bg-red-700';
     }
   }
 
-  return theme;
+  return {
+    primaryBg,
+    primaryText,
+    headerBg,
+    accentBorder,
+    sidebarBg,
+    activeMenuBg
+  };
 });
-// --- END NEW THEME LOGIC ---
+// --- END THEME LOGIC ---
 
 
 const toggleMenu = () => {
@@ -719,28 +660,14 @@ const menuItems = [
 <style scoped>
 /* Standard custom scrollbar styling */
 .custom-scrollbar::-webkit-scrollbar { width: 12px; }
-.custom-scrollbar::-webkit-scrollbar-track { background: #f0f0f0; border-radius: 10px; }
-.custom-scrollbar::-webkit-scrollbar-thumb { background-color: #a07d3a; border-radius: 10px; border: 3px solid #f0f0f0; }
-
-/* Light theme scrollbar */
-.bg-white.custom-scrollbar::-webkit-scrollbar-track { background: #f0f0f0; }
-.bg-white.custom-scrollbar::-webkit-scrollbar-thumb { background-color: #a07d3a; border-color: #f0f0f0; }
-.bg-gray-50.custom-scrollbar::-webkit-scrollbar-track { background: #f0f0f0; }
-.bg-gray-50.custom-scrollbar::-webkit-scrollbar-thumb { background-color: #a07d3a; border-color: #f0f0f0; }
-
-
-/* Dark theme scrollbar (Umbra Arcane) */
-.bg-black.custom-scrollbar::-webkit-scrollbar-track { background: #222; }
-.bg-black.custom-scrollbar::-webkit-scrollbar-thumb { background-color: #82fc3a; border-color: #222; }
-
-/* Dark theme scrollbar (Umbra Alchemist) */
-.bg-\[\#332c30\].custom-scrollbar::-webkit-scrollbar-track { background: #222; }
-.bg-\[\#332c30\].custom-scrollbar::-webkit-scrollbar-thumb { background-color: #b03f85; border-color: #222; }
-
+.custom-scrollbar::-webkit-scrollbar-track { background: #2a0a3a; border-radius: 10px; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background-color: #a07d3a; border-radius: 10px; border: 3px solid #2a0a3a; }
 
 /* The main content area should handle its own scrolling */
 main {
     height: 100%;
 }
+/* Scrollbar fallback styles for themed components */
+.custom-scrollbar.bg-white::-webkit-scrollbar-track { background: #f0f0f0; }
+.custom-scrollbar.bg-white::-webkit-scrollbar-thumb { background-color: #a07d3a; border: 3px solid #f0f0f0; }
 </style>
-
