@@ -56,7 +56,7 @@ The **animosity is palpable**. Skirmishes erupt on the borders, ideological wars
 
 ## The Threshold
 
-You, a young human, stand before a **momentous threshold**. The air around you thrums with a new, potent energy, unlike anything you've felt before. For generations, your family has been the keeper of a hidden **Sanctum**, a place veiled from the outside world, a nexus of ancient power. Today, on your fifteenth birthday, the Sanctum has finally awakened to you, its true inheritor. The air shimmers, revealing **two distinct pathways** within its hallowed chambers, each glowing with a different hue, each beckoning with a silent promise.
+You, a young **Ensian**, stand before a **momentous threshold**. The air around you thrums with a new, potent energy, unlike anything you've felt before. For generations, your family has been the keeper of a hidden **Sanctum**, a place veiled from the outside world, a nexus of ancient power. Today, on your fifteenth birthday, the Sanctum has finally awakened to you, its true inheritor. The air shimmers, revealing **two distinct pathways** within its hallowed chambers, each glowing with a different hue, each beckoning with a silent promise.
 
 A spectral whisper, ancient and resonant, echoes in your mind, presenting the fundamental choice that will shape your journey...
 
