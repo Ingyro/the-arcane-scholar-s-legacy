@@ -67,10 +67,10 @@ async function initializeFirebaseAuth() {
     if (initialAuthToken) {
       await signInWithCustomToken(auth, initialAuthToken);
       console.log('Signed in with custom token.');
-    } else {
-      await signInAnonymously(auth);
-      console.log('Signed in anonymously.');
-    }
+    } 
+    // By removing the 'else { signInAnonymously() }' block,
+    // the app will wait for a real login if no token is provided.
+    
   } catch (error) {
     console.error('Firebase authentication error:', error);
   }
