@@ -324,7 +324,7 @@ const toggleMenu = () => {
 // --- PRESTIGE MULTIPLIER ---
 const prestigeMultiplier = computed(() => {
   // Base bonus is 0.5% (0.005) per prestige level
-  return 1 + (characterDetails.value.prestige * 0.005);
+  return 1 + (characterDetails.value.prestige * 0.10);
 });
 // --- END PRESTIGE MULTIPLIER ---
 
@@ -411,7 +411,7 @@ const generateMultiplierTiers = () => {
 
   for (let i = 0; i < 20; i++) {
     const tierPower = Math.pow(1.8, i);
-    const tierCostScale = Math.pow(10, i);
+    const tierCostScale = Math.pow(8, i);
     
     const maxLevel = 20 + (i * 20);
 
@@ -424,11 +424,11 @@ const generateMultiplierTiers = () => {
         
         // baseCost is a stored value for scaling. Cost discount applied in getNextLevelCost.
         baseCost: (10 + j * 40) * tierCostScale, 
-        costMultiplier: 1.15 + (i * 0.01),
+        costMultiplier: 1.09 + (i * 0.01),
         
         // Base Effect is boosted by the prestige multiplier.
         baseEffect: (0.1 + j * 0.4) * tierPower * currentPrestigeMultiplier, 
-        effectMultiplier: 1.05 + (i * 0.005),
+        effectMultiplier: 1.10 + (i * 0.005),
         name: name
       }))
     });
