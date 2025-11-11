@@ -3,7 +3,8 @@
   <div class="flex flex-col items-center justify-center h-screen w-full bg-white text-gray-800 p-4 sm:p-6 md:p-8 overflow-y-auto">
     <h2 class="text-4xl font-serif text-black mb-8 text-center leading-tight">Forge Your Legacy</h2>
 
-    <div v-if="loading" class="mt-4 text-gray-600">Loading...</div>
+    <img src="/src/assets/logo.svg" alt="The Arcane Scholar's Legacy" class="h-24 w-24 mb-4 animate-bounce" />
+    <div v-if="loading" class="mt-4 text-gray-600">Loaading...</div>
     <div v-if="error" class="mt-4 text-red-600 bg-red-100 p-3 rounded-md">{{ error }}</div>
 
     <div v-if="!loreLoaded" class="w-full max-w-lg bg-gray-100 p-6 rounded-lg shadow-lg border border-gray-200 text-center">

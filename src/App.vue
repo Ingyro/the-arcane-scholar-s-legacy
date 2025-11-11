@@ -171,6 +171,6 @@ const handleReturnToCharacterSelect = () => {
 body {
   margin: 0;
   font-family: 'Inter', sans-serif;
-  background-color: #0d011a;
+  background-color: #fff;
 }
 </style>

@@ -5,16 +5,19 @@
 
     <!-- Login Buttons Container -->
     <div class="flex flex-col space-y-4 w-full max-w-sm">
-      <button @click="handleGoogleLogin"
+      <button v-if="!loading"
+              @click="handleGoogleLogin"
               class="bg-black hover:bg-gray-800 text-white font-bold py-3 px-6 rounded-lg shadow-md transition duration-300 ease-in-out flex items-center justify-center text-lg">
         <img src="https://www.google.com/favicon.ico" alt="Google Logo" class="h-7 w-7 mr-3" />
         Sign in with Google
       </button>
     </div>
 
-    <!-- Loading Indicator -->
-    <div v-if="loading" class="mt-6 text-gray-600">
-      <p>Loading...</p>
+    <!-- Loading Indicator (Now a prominent logo display) -->
+    <div v-if="loading" class="mt-12 flex flex-col items-center justify-center text-gray-600">
+      <!-- Increased size and added a subtle bounce animation for effect -->
+      <img src="/src/assets/logo.svg" alt="The Arcane Scholar's Legacy" class="h-24 w-24 mb-4 animate-bounce" />
+      <p class="text-xl font-medium">Authenticating and Loading...</p>
     </div>
 
     <!-- Error Message -->
@@ -27,7 +30,7 @@
 <script setup>
 import { ref } from 'vue';
 // Import Firebase authentication functions and providers
-import { getAuth, signInWithPopup, GoogleAuthProvider } from 'firebase/auth'; // FacebookAuthProvider removed
+import { getAuth, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 
 // Define reactive state variables for loading and error messages
 const loading = ref(false);
@@ -46,24 +49,42 @@ const handleGoogleLogin = async () => {
     const provider = new GoogleAuthProvider(); // Create a new Google Auth Provider
     const result = await signInWithPopup(auth, provider); // Sign in with Google popup
 
-    // You can access user information from the result
     const user = result.user;
     console.log('Google Login successful:', user);
 
-    // Emit an event to the parent component (App.vue) to signal successful login
+    // --- MANDATORY 2-SECOND DELAY TO DISPLAY LOGO ---
+    // Wait for 2000 milliseconds (2 seconds) before continuing.
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    // ------------------------------------------------
+
+    // Emit an event after the delay to signal successful login
     emit('successfulLogin', user);
+
   } catch (err) {
     console.error('Google Login error:', err);
-    // Display a user-friendly error message
+    // Display a user-friendly error message immediately on failure
     error.value = `Google Login failed: ${err.message}`;
   } finally {
-    loading.value = false; // Set loading to false after operation completes
+    // Set loading to false after the delay (on success) or immediately (on failure)
+    loading.value = false;
   }
 };
-
-// handleFacebookLogin function removed as requested
 </script>
 
 <style scoped>
-/* No custom CSS needed */
+/* Define a simple bounce animation for the logo */
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(-5%);
+    animation-timing-function: cubic-bezier(0.8, 0, 1, 1);
+  }
+  50% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
+  }
+}
+
+.animate-bounce {
+  animation: bounce 1s infinite;
+}
 </style>
