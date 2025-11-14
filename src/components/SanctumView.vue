@@ -1,6 +1,8 @@
 <template>
+  <!-- The main section tag now wraps everything, including achievements -->
   <section :class="[props.themeClasses.primaryText, props.themeClasses.accentBorder, props.themeClasses.primaryBg, 'p-6 rounded-lg shadow-xl border']">
     
+    <!-- CHARACTER BIO & SANCTUM OVERVIEW (Existing Content) -->
     <div class="flex items-start space-x-6 mb-4">
       <div class="flex flex-col items-center w-28 flex-shrink-0">
           <div class="w-24 h-24 sm:w-28 sm:h-28 border-2 rounded-lg shadow-inner flex items-center justify-center"
@@ -24,8 +26,8 @@
       </div>
     </div>
 
+    <!-- KNOWLEDGE GENERATION (Existing Content) -->
     <div class="flex flex-col items-center justify-center space-y-6 mt-8">
-      <!-- UPDATED: Use formatLargeNumber for current Knowledge -->
       <span class="text-4xl sm:text-5xl font-bold mb-4" :class="props.themeClasses.primaryText">
         Current Knowledge: {{ formatLargeNumber(knowledge) }}
       </span>
@@ -37,12 +39,12 @@
       
       <p class="text-sm mt-2" :class="props.themeClasses.primaryText">Click to harness raw arcane energy and convert it into Knowledge.</p>
       
-      <!-- UPDATED: Use formatLargeNumber for Passive Knowledge Gain -->
       <p class="text-xl mt-4" :class="props.themeClasses.primaryText">
         Passive Knowledge Gain: <span class="font-bold">{{ formatLargeNumber(passiveKnowledgeGain) }}</span> / second
       </p>
     </div>
 
+    <!-- MULTIPLIER TIERS (Existing Content) -->
     <div class="mt-10 pt-6 border-t" :class="props.themeClasses.accentBorder">
       
       <div v-if="activeTier">
@@ -59,14 +61,11 @@
                 {{ item.name }} (Level {{ item.level }} / {{ item.maxLevel }})
             </h4>
             
-            <!-- UPDATED: Use formatLargeNumber for Current effect -->
             <p class="text-sm mb-2" :class="props.themeClasses.primaryText">
               Current effect: +{{ formatLargeNumber(item.baseEffect * Math.pow(item.effectMultiplier, item.level > 0 ? item.level - 1 : 0)) }} knowledge/s
-              <!-- UPDATED: Use formatLargeNumber for Next effect -->
               <span v-if="item.level > 0 && item.level < item.maxLevel">(Next: +{{ formatLargeNumber(item.baseEffect * Math.pow(item.effectMultiplier, item.level)) }} knowledge/s)</span>
             </p>
             
-            <!-- UPDATED: Use formatLargeNumber for Cost -->
             <p class="text-sm mb-4" :class="props.themeClasses.primaryText">
               Cost for next level ({{ item.level + 1 }}): 
               <span class="font-bold" :class="props.themeClasses.primaryText">{{ formatLargeNumber(getNextLevelCost(props.currentTierIndex, multiplierIndex)) }} Knowledge</span>
@@ -101,13 +100,22 @@
       <div v-else class="text-center p-4 rounded-lg border border-dashed" :class="[props.themeClasses.sidebarBg, props.themeClasses.accentBorder, props.themeClasses.primaryText]">
           <p class="italic">Loading Arcane Data...</p>
       </div>
-
     </div>
+
+    <!-- 
+      *** NEW ACHIEVEMENTS SECTION ***
+      The new component is added here, at the bottom of the Sanctum view.
+      It receives the themeClasses prop to style itself correctly.
+    -->
+    <AchievementsSection :theme-classes="props.themeClasses" />
+
   </section>
 </template>
 
 <script setup>
 import { defineProps, defineEmits, computed } from 'vue';
+// *** IMPORT THE NEW COMPONENT ***
+import AchievementsSection from './AchievementsSection.vue';
 
 const props = defineProps({
   knowledge: { type: Number, required: true },
@@ -131,13 +139,6 @@ const props = defineProps({
 const emit = defineEmits(['generate-knowledge', 'buy-multiplier', 'advance-tier']); 
 
 // --- UTILITY: Format Large Numbers (K, M, B, T) ---
-/**
- * Formats a large number into a concise string (e.g., 1,234,567 -> 1.025M, 102568 -> 102.6K).
- * Uses dynamic decimal places to maintain approximately 4 significant figures of precision
- * before the unit letter, and ensures at least two decimal places for small numbers.
- * @param {number} num - The number to format.
- * @returns {string} The formatted string.
- */
 const formatLargeNumber = (num) => {
   if (num === null || num === undefined) return '0.00';
   num = Number(num);
@@ -156,25 +157,17 @@ const formatLargeNumber = (num) => {
       let formatted;
 
       if (scaled < 10) {
-        // e.g., 1.025M (4 significant figures total)
         formatted = scaled.toFixed(3); 
       } else if (scaled < 100) {
-        // e.g., 12.34K (4 significant figures total)
         formatted = scaled.toFixed(2);
       } else { 
-        // 100 <= scaled < 1000. e.g., 123.4K (4 significant figures total)
         formatted = scaled.toFixed(1);
       }
-      
-      // Remove trailing zero if it was the only one and we are in the high precision range
-      // (This is a clean-up, but generally, we keep the requested precision)
-      // For 1.000M, toFixed(3) makes it 1.000M. We keep it as requested high precision.
       
       return formatted + symbol;
     }
   }
   
-  // Return as is if less than 1000, ensuring two decimal places (e.g., 10.45)
   return num.toFixed(2); 
 };
 // --- END UTILITY ---
@@ -189,10 +182,7 @@ const canAdvanceTier = computed(() => {
     const currentTier = activeTier.value;
     if (!currentTier) return false;
     
-    // 1. Check if ALL multipliers in the current tier are at max level
     const allMaxed = currentTier.multipliers.every(m => m.level === m.maxLevel);
-    
-    // 2. Check if the next tier data structure exists
     const nextTierExists = props.multiplierTiers[props.currentTierIndex + 1];
 
     return allMaxed && nextTierExists;
@@ -201,11 +191,10 @@ const canAdvanceTier = computed(() => {
 const getNextLevelCost = (tierIndex, multiplierIndex) => {
   const item = props.multiplierTiers[tierIndex]?.multipliers[multiplierIndex];
   if (!item) return Infinity;
-  // NOTE: This function's output is passed directly to formatLargeNumber in the template.
   return item.baseCost * Math.pow(item.costMultiplier, item.level);
 };
 </script>
 
 <style scoped>
-/* Scoped styles remain minimal as most styling is handled by Tailwind classes */
+/* Scoped styles remain minimal */
 </style>
