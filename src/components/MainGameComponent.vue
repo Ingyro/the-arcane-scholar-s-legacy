@@ -6,25 +6,56 @@
   -->
   <div :class="[themeClasses.primaryBg, themeClasses.primaryText, 'flex flex-col h-screen w-full font-sans overflow-hidden']">
     
-    <!-- HEADER: Unchanged -->
-    <header :class="[themeClasses.headerBg, themeClasses.headerText, 'shadow-lg border-b', themeClasses.accentBorder, themeClasses.shadowColor, 'flex items-center justify-between p-4 z-20']">
-      <h1 class="text-3xl font-serif tracking-wide">The Arcane Scholar’s Legacy || {{ characterDetails.name }}</h1>
-      <div class="flex items-center space-x-4">
-        <span class="text-lg">Prestige: <span class="font-bold text-2xl">{{ characterDetails.prestige }}</span></span>
-        <span class="text-lg">Skill Points: <span class="font-bold text-2xl">{{ skillPoints }}</span></span>
-        <span class="text-lg">Knowledge: <span class="font-bold text-2xl">{{ formatLargeNumber(displayedKnowledge) }}</span></span>
+    <!-- 
+      HEADER: RESPONSIVE CHANGES
+      - p-2 md:p-4 -> Smaller padding on mobile
+      - flex-col md:flex-row -> Stacks vertically on mobile, horizontal on desktop
+      - md:items-center -> Ensures vertical alignment is correct on desktop
+    -->
+    <header :class="[themeClasses.headerBg, themeClasses.headerText, 'shadow-lg border-b', themeClasses.accentBorder, themeClasses.shadowColor, 'flex flex-col md:flex-row md:items-center justify-between p-2 md:p-4 z-20']">
+      <!-- 
+        TITLE: RESPONSIVE CHANGES
+        - text-xl md:text-3xl -> Smaller text on mobile
+        - text-center md:text-left -> Center-align on mobile stack
+      -->
+      <h1 class="text-xl md:text-3xl font-serif tracking-wide text-center md:text-left truncate" :title="`The Arcane Scholar’s Legacy || ${characterDetails.name}`">
+        The Arcane Scholar’s Legacy || {{ characterDetails.name }}
+      </h1>
+      
+      <!-- 
+        STATS & BUTTONS CONTAINER: RESPONSIVE CHANGES
+        - space-x-2 md:space-x-4 -> Tighter spacing on mobile
+        - mt-2 md:mt-0 -> Add margin-top on mobile (since it's stacked)
+        - flex-wrap -> Allow stats/buttons to wrap on very small screens
+        - justify-center md:justify-end -> Center items on mobile, right-align on desktop
+      -->
+      <div class="flex items-center justify-center md:justify-end flex-wrap space-x-2 md:space-x-4 mt-2 md:mt-0">
+        <!-- 
+          STATS: RESPONSIVE CHANGES
+          - text-sm md:text-lg -> Smaller stat text
+          - text-base md:text-2xl -> Smaller stat number
+        -->
+        <span class="text-sm md:text-lg">Prestige: <span class="font-bold text-base md:text-2xl">{{ characterDetails.prestige }}</span></span>
+        <span class="text-sm md:text-lg">Skill Points: <span class="font-bold text-base md:text-2xl">{{ skillPoints }}</span></span>
+        <span class="text-sm md:text-lg">Knowledge: <span class="font-bold text-base md:text-2xl">{{ formatLargeNumber(displayedKnowledge) }}</span></span>
 
+        <!-- 
+          BUTTONS: RESPONSIVE CHANGES
+          - py-1 px-3 md:py-2 md:px-4 -> Smaller padding
+          - text-sm md:text-base -> Smaller text
+          - rounded-md md:rounded-lg -> Smaller rounding
+        -->
         <button @click="saveGameProgress"
                 :disabled="saving"
-                :class="[themeClasses.buttonBg, themeClasses.buttonText, themeClasses.buttonHover, 'font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed']">
-          {{ saving ? 'Saving...' : 'Save Progress' }}
+                :class="[themeClasses.buttonBg, themeClasses.buttonText, themeClasses.buttonHover, 'font-bold py-1 px-3 md:py-2 md:px-4 text-sm md:text-base rounded-md md:rounded-lg shadow-md transition duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed']">
+          {{ saving ? 'Saving...' : 'Save' }} <!-- Shortened text for mobile -->
         </button>
         <button @click="returnToCharacterSelect"
-                :class="[themeClasses.buttonSecondaryBg, themeClasses.buttonSecondaryText, themeClasses.buttonSecondaryHover, 'font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out']">
-          Back to Characters
+                :class="[themeClasses.buttonSecondaryBg, themeClasses.buttonSecondaryText, themeClasses.buttonSecondaryHover, 'font-bold py-1 px-3 md:py-2 md:px-4 text-sm md:text-base rounded-md md:rounded-lg shadow-md transition duration-300 ease-in-out']">
+          Back <!-- Shortened text for mobile -->
         </button>
         <button @click="handleLogout"
-                :class="[themeClasses.buttonUrgentBg, themeClasses.buttonUrgentText, themeClasses.buttonUrgentHover, 'font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out']">
+                :class="[themeClasses.buttonUrgentBg, themeClasses.buttonUrgentText, themeClasses.buttonUrgentHover, 'font-bold py-1 px-3 md:py-2 md:px-4 text-sm md:text-base rounded-md md:rounded-lg shadow-md transition duration-300 ease-in-out']">
           Log Out
         </button>
       </div>
@@ -79,13 +110,19 @@
       - This <nav> is 'fixed' to the bottom-center of the screen.
       - It's a horizontal flex row, rounded, with its own background and shadow.
       - `z-50` ensures it floats above the main content.
+      -
+      - RESPONSIVE CHANGES:
+      - p-2 md:p-3 -> Smaller padding on the dock for mobile, larger for desktop.
+      - space-x-1 md:space-x-2 -> Tighter spacing between icons for mobile.
     -->
     <nav :class="[
         themeClasses.headerBg, 
         themeClasses.accentBorder, 
         'fixed bottom-4 left-1/2 -translate-x-1/2',
-        'flex items-center justify-center space-x-2',
-        'p-3 rounded-full shadow-2xl border z-50'
+        'flex items-center justify-center',
+        'p-2 md:p-3', // Responsive padding for the dock
+        'space-x-1 md:space-x-2', // Responsive spacing for icons
+        'rounded-full shadow-2xl border z-50'
       ]">
       
       <!-- 
@@ -94,13 +131,17 @@
         - `group relative` is added for the tooltip.
         - The button scales up on hover for a "dock" effect.
         - The text name is now in a hidden tooltip.
+        -
+        - RESPONSIVE CHANGES:
+        - p-2.5 md:p-3 -> Smaller padding for the button on mobile (p-2.5 = 10px, for a 44px tap target)
       -->
       <button 
         v-for="menuItem in menuItems" 
         :key="menuItem.id"
         @click="activeMenu = menuItem.id"
         :class="[
-          'relative group p-3 rounded-full transition-all duration-200 ease-in-out',
+          'relative group rounded-full transition-all duration-200 ease-in-out',
+          'p-2.5 md:p-3', // Responsive padding for the button
           'transform hover:scale-110',
           activeMenu === menuItem.id 
             ? [themeClasses.activeMenuBg, themeClasses.activeMenuText, 'scale-110 shadow-inner'] 
@@ -108,11 +149,16 @@
         ]"
         :title="menuItem.name"
       >
-        <span class="text-3xl flex-shrink-0">
+        
+        <!-- 
+          - RESPONSIVE CHANGES:
+          - text-2xl md:text-3xl -> Smaller icon on mobile, larger on desktop.
+        -->
+        <span class="text-2xl md:text-3xl flex-shrink-0">
           {{ menuItem.icon }}
         </span>
         
-        <!-- Tooltip -->
+        <!-- Tooltip (no changes) -->
         <span :class="[
             themeClasses.sidebarBg, 
             themeClasses.primaryText,
