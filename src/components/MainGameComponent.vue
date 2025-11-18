@@ -8,68 +8,86 @@
     
     <!-- 
       HEADER: RESPONSIVE CHANGES
-      - p-2 md:p-4 -> Smaller padding on mobile
-      - flex-col md:flex-row -> Stacks vertically on mobile, horizontal on desktop
-      - md:items-center -> Ensures vertical alignment is correct on desktop
     -->
-    <header :class="[themeClasses.headerBg, themeClasses.headerText, 'shadow-lg border-b', themeClasses.accentBorder, themeClasses.shadowColor, 'flex flex-col md:flex-row md:items-center justify-between p-2 md:p-4 z-20']">
+    <header :class="[themeClasses.headerBg, themeClasses.headerText, 'shadow-lg border-b', themeClasses.accentBorder, themeClasses.shadowColor, 'flex flex-nowrap items-center justify-between p-2 z-20']">
+      
       <!-- 
         TITLE: RESPONSIVE CHANGES
-        - text-xl md:text-3xl -> Smaller text on mobile
-        - text-center md:text-left -> Center-align on mobile stack
       -->
-      <h1 class="text-xl md:text-3xl font-serif tracking-wide text-center md:text-left truncate" :title="`The Arcane Scholar’s Legacy || ${characterDetails.name}`">
-        The Arcane Scholar’s Legacy || {{ characterDetails.name }}
+      <h1 class="text-xl lg:text-3xl font-serif tracking-wide text-left truncate flex items-center space-x-2 flex-shrink min-w-0" :title="`The Arcane Scholar’s Legacy || ${characterDetails.name}`">
+        <!-- Mobile View: Logo + Name -->
+        <span class="lg:hidden flex items-center space-x-2">
+          <img src="/src/assets/logo.svg" alt="The Arcane Scholar's Legacy" class="h-8 w-8"> <!-- Logo -->
+          <span class="truncate text-lg">{{ characterDetails.name }}</span> <!-- Font size reduced -->
+        </span>
+        <!-- Desktop View: Logo + Full Title + Name -->
+        <span class="hidden lg:flex items-center space-x-3">
+          <img src="/src/assets/logo.svg" alt="The Arcane Scholar's Legacy" class="h-10 w-10"> <!-- Logo -->
+          <span class="truncate">The Arcane Scholar’s Legacy || {{ characterDetails.name }}</span>
+        </span>
       </h1>
       
       <!-- 
-        STATS & BUTTONS CONTAINER: RESPONSIVE CHANGES
-        - space-x-2 md:space-x-4 -> Tighter spacing on mobile
-        - mt-2 md:mt-0 -> Add margin-top on mobile (since it's stacked)
-        - flex-wrap -> Allow stats/buttons to wrap on very small screens
-        - justify-center md:justify-end -> Center items on mobile, right-align on desktop
+        STATS & BUTTONS CONTAINER: 
       -->
-      <div class="flex items-center justify-center md:justify-end flex-wrap space-x-2 md:space-x-4 mt-2 md:mt-0">
-        <!-- 
-          STATS: RESPONSIVE CHANGES
-          - text-sm md:text-lg -> Smaller stat text
-          - text-base md:text-2xl -> Smaller stat number
-        -->
-        <span class="text-sm md:text-lg">Prestige: <span class="font-bold text-base md:text-2xl">{{ characterDetails.prestige }}</span></span>
-        <span class="text-sm md:text-lg">Skill Points: <span class="font-bold text-base md:text-2xl">{{ skillPoints }}</span></span>
-        <span class="text-sm md:text-lg">Knowledge: <span class="font-bold text-base md:text-2xl">{{ formatLargeNumber(displayedKnowledge) }}</span></span>
+      <div class="flex items-center justify-end ml-auto flex-shrink-0">
+        <!-- Stats Container: Groups stats together -->
+        <div class="flex items-center space-x-1 sm:space-x-2 lg:space-x-3">
+          <!-- Stats -->
+          <span class="flex items-center space-x-1" title="Prestige">
+            <span class="text-lg lg:text-xl">💎</span>
+            <span class="font-bold text-base lg:text-xl min-w-[3rem] lg:min-w-[4rem] text-right">{{ characterDetails.prestige }}</span>
+            <span class="hidden lg:inline text-sm lg:text-lg ml-1">Prestige</span>
+          </span>
+          <span class="flex items-center space-x-1" title="Skill Points">
+            <span class="text-lg lg:text-xl">✨</span>
+            <span class="font-bold text-base lg:text-xl min-w-[3rem] lg:min-w-[4rem] text-right">{{ skillPoints }}</span>
+            <span class="hidden lg:inline text-sm lg:text-lg ml-1">Skill Points</span>
+          </span>
+          <span class="flex items-center space-x-1" title="Knowledge">
+            <span class="text-lg lg:text-xl">🧠</span>
+            <span class="font-bold text-base lg:text-xl min-w-[3rem] lg:min-w-[4rem] text-right">{{ formatLargeNumber(displayedKnowledge) }}</span>
+            <span class="hidden lg:inline text-sm lg:text-lg ml-1">Knowledge</span>
+          </span>
+        </div>
 
-        <!-- 
-          BUTTONS: RESPONSIVE CHANGES
-          - py-1 px-3 md:py-2 md:px-4 -> Smaller padding
-          - text-sm md:text-base -> Smaller text
-          - rounded-md md:rounded-lg -> Smaller rounding
-        -->
-        <button @click="saveGameProgress"
-                :disabled="saving"
-                :class="[themeClasses.buttonBg, themeClasses.buttonText, themeClasses.buttonHover, 'font-bold py-1 px-3 md:py-2 md:px-4 text-sm md:text-base rounded-md md:rounded-lg shadow-md transition duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed']">
-          {{ saving ? 'Saving...' : 'Save' }} <!-- Shortened text for mobile -->
-        </button>
-        <button @click="returnToCharacterSelect"
-                :class="[themeClasses.buttonSecondaryBg, themeClasses.buttonSecondaryText, themeClasses.buttonSecondaryHover, 'font-bold py-1 px-3 md:py-2 md:px-4 text-sm md:text-base rounded-md md:rounded-lg shadow-md transition duration-300 ease-in-out']">
-          Back <!-- Shortened text for mobile -->
-        </button>
-        <button @click="handleLogout"
-                :class="[themeClasses.buttonUrgentBg, themeClasses.buttonUrgentText, themeClasses.buttonUrgentHover, 'font-bold py-1 px-3 md:py-2 md:px-4 text-sm md:text-base rounded-md md:rounded-lg shadow-md transition duration-300 ease-in-out']">
-          Log Out
-        </button>
+        <!-- Buttons Container: Groups buttons together -->
+        <div class="flex items-center space-x-1 sm:space-x-2 lg:space-x-3 ml-2 lg:ml-4">
+          <!-- 
+            BUTTONS: RESPONSIVE CHANGES
+            - Icon-only on mobile (p-2)
+          -->
+          <button @click="saveGameProgress"
+                  :disabled="saving"
+                  :class="[themeClasses.buttonBg, themeClasses.buttonText, themeClasses.buttonHover, 'font-bold p-2 lg:py-2 lg:px-4 text-sm lg:text-base rounded-md lg:rounded-lg shadow-md transition duration-300 ease-in-out flex items-center justify-center', saving ? 'opacity-50 cursor-not-allowed' : '']"
+                  title="Save Game">
+            <span class="text-xl lg:text-base">💾</span>
+            <span class="hidden lg:inline ml-2">{{ saving ? 'Saving...' : 'Save' }}</span>
+          </button>
+          <button @click="returnToCharacterSelect"
+                  :class="[themeClasses.buttonSecondaryBg, themeClasses.buttonSecondaryText, themeClasses.buttonSecondaryHover, 'font-bold p-2 lg:py-2 lg:px-4 text-sm lg:text-base rounded-md lg:rounded-lg shadow-md transition duration-300 ease-in-out flex items-center justify-center']"
+                  title="Back to Select">
+            <span class="text-xl lg:text-base">↩️</span>
+            <span class="hidden lg:inline ml-2">Back</span>
+          </button>
+          <button @click="handleLogout"
+                  :class="[themeClasses.buttonUrgentBg, themeClasses.buttonUrgentText, themeClasses.buttonUrgentHover, 'font-bold p-2 lg:py-2 lg:px-4 text-sm lg:text-base rounded-md lg:rounded-lg shadow-md transition duration-300 ease-in-out flex items-center justify-center']"
+                  title="Log Out">
+            <span class="text-xl lg:text-base">🚪</span>
+            <span class="hidden lg:inline ml-2">Log Out</span>
+          </button>
+        </div>
       </div>
+      <!-- END of STATS & BUTTONS CONTAINER -->
     </header>
 
     <!-- 
       MAIN CONTENT AREA:
-      - The old sidebar <nav> is GONE.
-      - The old `flex-1 overflow-hidden` wrapper is GONE.
       - `<main>` now fills the remaining space (`flex-1`) and handles its own scrolling.
       - `pb-24` (padding-bottom) is crucial to prevent the new floating
-        dock from covering content at the bottom of the scroll.
+        dock from covering content at the bottom of the scroll on mobile.
     -->
-    <main :class="['flex-1 p-6 overflow-y-auto custom-scrollbar pb-24', themeClasses.primaryBg]">
+    <main :class="['flex-1 p-6 overflow-y-auto custom-scrollbar pb-24 lg:pb-6', themeClasses.primaryBg]">
       <SanctumView
         v-if="activeMenu === 'sanctum'"
         :knowledge="knowledge"
@@ -107,42 +125,26 @@
 
     <!-- 
       *** NEW FLOATING DOCK ***
-      - This <nav> is 'fixed' to the bottom-center of the screen.
-      - It's a horizontal flex row, rounded, with its own background and shadow.
-      - `z-50` ensures it floats above the main content.
-      -
-      - RESPONSIVE CHANGES:
-      - p-2 md:p-3 -> Smaller padding on the dock for mobile, larger for desktop.
-      - space-x-1 md:space-x-2 -> Tighter spacing between icons for mobile.
     -->
     <nav :class="[
         themeClasses.headerBg, 
         themeClasses.accentBorder, 
-        'fixed bottom-4 left-1/2 -translate-x-1/2',
-        'flex items-center justify-center',
-        'p-2 md:p-3', // Responsive padding for the dock
-        'space-x-1 md:space-x-2', // Responsive spacing for icons
-        'rounded-full shadow-2xl border z-50'
+        'fixed bottom-0 left-0 right-0 lg:left-1/2 lg:-translate-x-1/2 lg:right-auto lg:bottom-4',
+        'flex items-center justify-around lg:justify-center',
+        'p-1 lg:p-3', 
+        'space-x-0 lg:space-x-2', 
+        'lg:rounded-full shadow-2xl border z-50'
       ]">
       
-      <!-- 
-        Dock Buttons:
-        - The `v-for` now renders icon-only buttons.
-        - `group relative` is added for the tooltip.
-        - The button scales up on hover for a "dock" effect.
-        - The text name is now in a hidden tooltip.
-        -
-        - RESPONSIVE CHANGES:
-        - p-2.5 md:p-3 -> Smaller padding for the button on mobile (p-2.5 = 10px, for a 44px tap target)
-      -->
+      <!-- Dock Buttons -->
       <button 
         v-for="menuItem in menuItems" 
         :key="menuItem.id"
         @click="activeMenu = menuItem.id"
         :class="[
           'relative group rounded-full transition-all duration-200 ease-in-out',
-          'p-2.5 md:p-3', // Responsive padding for the button
           'transform hover:scale-110',
+          'w-14 h-14 flex items-center justify-center lg:w-auto lg:h-auto lg:p-3', 
           activeMenu === menuItem.id 
             ? [themeClasses.activeMenuBg, themeClasses.activeMenuText, 'scale-110 shadow-inner'] 
             : [themeClasses.headerText, 'opacity-70 hover:opacity-100']
@@ -150,15 +152,11 @@
         :title="menuItem.name"
       >
         
-        <!-- 
-          - RESPONSIVE CHANGES:
-          - text-2xl md:text-3xl -> Smaller icon on mobile, larger on desktop.
-        -->
-        <span class="text-2xl md:text-3xl flex-shrink-0">
+        <span class="text-3xl lg:text-3xl flex-shrink-0">
           {{ menuItem.icon }}
         </span>
         
-        <!-- Tooltip (no changes) -->
+        <!-- Tooltip -->
         <span :class="[
             themeClasses.sidebarBg, 
             themeClasses.primaryText,
@@ -178,7 +176,8 @@
 import { ref, onMounted, onUnmounted, computed, watch } from 'vue';
 import { getAuth } from 'firebase/auth';
 import { getFirestore, doc, getDoc, setDoc, Timestamp } from 'firebase/firestore';
-import { defineProps, defineEmits } from 'vue';
+
+// Note: defineProps and defineEmits are compiler macros in <script setup> and do not need to be imported from 'vue'.
 
 // Import the view components
 import SanctumView from './SanctumView.vue';
@@ -203,10 +202,6 @@ const activeMenu = ref('sanctum');
 const saving = ref(false);
 const currentTierIndex = ref(0); 
 const skillPoints = ref(0); 
-
-// *** REMOVED STATE ***
-// `isMenuCollapsed` is no longer needed.
-// const isMenuCollapsed = ref(false); 
 
 const auth = getAuth();
 const db = getFirestore();
@@ -356,10 +351,6 @@ const themeClasses = computed(() => {
   return theme;
 });
 
-// *** REMOVED FUNCTION ***
-// `toggleMenu` is no longer needed.
-// const toggleMenu = () => { ... };
-
 // --- PRESTIGE MULTIPLIER (Unchanged) ---
 const prestigeMultiplier = computed(() => {
   return 1 + (characterDetails.value.prestige * 0.10);
@@ -391,11 +382,7 @@ const getMultiplierNames = () => {
   return names;
 };
 
-// --- GAME LOGIC FUNCTIONS (generateMultiplierTiers, passiveKnowledgeGain, etc.) ---
-// ... All these functions (from generateMultiplierTiers to loadGameProgress)
-// ... remain unchanged. They are part of the core game logic,
-// ... not the UI layout.
-// [OMITTED FOR BREVITY, NO CHANGES NEEDED TO THIS LOGIC]
+// --- GAME LOGIC FUNCTIONS ---
 const generateMultiplierTiers = () => {
   const tiers = [];
   const baseNames = getMultiplierNames(); 
@@ -608,8 +595,6 @@ onUnmounted(async () => {
 });
 
 // --- MENU ITEMS (Unchanged) ---
-// This list remains the same, as you requested achievements
-// go into the Sanctum view, not a new tab.
 const menuItems = [
   { id: 'sanctum', name: 'Sanctum / Home', icon: '🏠' },
   { id: 'research', name: 'Research', icon: '🔬' },
@@ -636,10 +621,4 @@ const menuItems = [
 .bg-\[\#2a3b29\].custom-scrollbar::-webkit-scrollbar-track { background: #1a2419; }
 .bg-\[\#2a3b29\].custom-scrollbar::-webkit-scrollbar-thumb { background-color: #82fc3a; border-color: #1a2419; }
 
-/* The main content area styling is simpler now,
-  just ensuring it can scroll.
-*/
-main {
-  /* height: 100%; <-- This is no longer needed */
-}
 </style>
