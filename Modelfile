@@ -1,0 +1,15 @@
+# Start from your existing model
+FROM qwen2.5-coder:14b-instruct-q6_K
+
+# Set the context window (memory). 
+# 32768 is a great sweet spot for 16GB-32GB RAM systems.
+PARAMETER num_ctx 81920
+
+# Optional: Adjust creativity for coding (lower is better for precision)
+PARAMETER temperature 0.2
+
+# This ensures the model knows it is an expert coder
+SYSTEM """
+You are an expert software engineer and a world-class systems architect.
+When asked to write code, prioritize readability, performance, and best practices.
+"""
