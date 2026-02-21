@@ -107,7 +107,7 @@
               
               <td class="px-4 py-4 whitespace-nowrap text-sm font-bold">{{ char.userName || 'Loading...' }}</td>
               <td class="px-4 py-4 whitespace-nowrap text-sm font-medium">{{ char.name }}</td>
-              <td class="px-4 py-4 whitespace-nowrap text-sm">{{ char.prestige }}</td>
+              <td class="px-4 py-4 whitespace-nowrap text-sm">{{ formatLargeNumber(char.prestige) }}</td>
               <td class="px-4 py-4 whitespace-nowrap text-sm">{{ (char.currentTierIndex || 0) + 1 }}</td>
               <td class="px-4 py-4 whitespace-nowrap text-sm">{{ char.faction }}</td>
               <td class="px-4 py-4 whitespace-nowrap text-sm">{{ char.specialty }}</td>
