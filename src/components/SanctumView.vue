@@ -175,39 +175,8 @@ const tabs = [
   { id: 'achievements', name: 'Achievements' },
 ];
 
-// --- UTILITY: Format Large Numbers (K, M, B, T) ---
-const formatLargeNumber = (num) => {
-  if (num === null || num === undefined) return '0.00';
-  num = Number(num);
-  
-  const units = [
-    { value: 1e12, symbol: 'T' },
-    { value: 1e9, symbol: 'B' },
-    { value: 1e6, symbol: 'M' },
-    { value: 1e3, symbol: 'K' },
-  ];
-
-  for (let i = 0; i < units.length; i++) {
-    const { value, symbol } = units[i];
-    if (Math.abs(num) >= value) {
-      const scaled = num / value;
-      let formatted;
-
-      if (scaled < 10) {
-        formatted = scaled.toFixed(3); 
-      } else if (scaled < 100) {
-        formatted = scaled.toFixed(2);
-      } else { 
-        formatted = scaled.toFixed(1);
-      }
-      
-      return formatted + symbol;
-    }
-  }
-  
-  return num.toFixed(2); 
-};
-// --- END UTILITY ---
+// Import utility functions
+import { formatLargeNumber } from '@/utils/gameUtils';
 
 // Computed property to get the currently active tier object
 const activeTier = computed(() => {
