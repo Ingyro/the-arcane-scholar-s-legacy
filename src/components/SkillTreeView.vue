@@ -30,6 +30,9 @@
             </div>
             <div class="mt-3 text-sm opacity-90">{{ skill.desc }}</div>
             <div class="mt-2 text-xs opacity-70">Deps: <span v-if="skill.deps.length===0">—</span><span v-else>{{ skill.deps.join(', ') }}</span></div>
+            <div class="mt-2 flex items-center space-x-1">
+              <div v-for="i in skill.slots" :key="i" :class="['w-3 h-3 rounded-full', skill.pointsAllocated >= i ? 'bg-green-700' : 'bg-gray-400']"></div>
+            </div>
           </div>
         </div>
       </div>
@@ -53,6 +56,9 @@
             </div>
             <div class="mt-3 text-sm opacity-90">{{ skill.desc }}</div>
             <div class="mt-2 text-xs opacity-70">Deps: <span v-if="skill.deps.length===0">—</span><span v-else>{{ skill.deps.join(', ') }}</span></div>
+            <div class="mt-2 flex items-center space-x-1">
+              <div v-for="i in skill.slots" :key="i" :class="['w-3 h-3 rounded-full', skill.pointsAllocated >= i ? 'bg-green-700' : 'bg-gray-400']"></div>
+            </div>
           </div>
         </div>
       </div>
@@ -75,6 +81,9 @@
           </div>
           <div class="mt-3 text-sm opacity-90">{{ crownSkill.desc }}</div>
           <div class="mt-2 text-xs opacity-70">Deps: <span v-if="crownSkill.deps.length===0">—</span><span v-else>{{ crownSkill.deps.join(', ') }}</span></div>
+          <div class="mt-2 flex items-center space-x-1">
+            <div v-for="i in crownSkill.slots" :key="i" :class="['w-3 h-3 rounded-full', crownSkill.pointsAllocated >= i ? 'bg-green-700' : 'bg-gray-400']"></div>
+          </div>
         </div>
       </div>
       
@@ -96,6 +105,9 @@
           </div>
           <div class="mt-3 text-sm opacity-90">{{ hiddenPathSkill.desc }}</div>
           <div class="mt-2 text-xs opacity-70">Deps: <span v-if="hiddenPathSkill.deps.length===0">—</span><span v-else>{{ hiddenPathSkill.deps.join(', ') }}</span></div>
+          <div class="mt-2 flex items-center space-x-1">
+            <div v-for="i in hiddenPathSkill.slots" :key="i" :class="['w-3 h-3 rounded-full', hiddenPathSkill.pointsAllocated >= i ? 'bg-green-700' : 'bg-gray-400']"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -124,15 +136,15 @@ const { themeClasses } = props;
 const skillPoints = ref(5);
 
 const skills = ref([
-  { id: 'T1', name: 'Trunk Skill 1', cost: 1, desc: 'First trunk skill.', deps: [], slots: 3 },
-  { id: 'T2', name: 'Trunk Skill 2', cost: 1, desc: 'Second trunk skill.', deps: [], slots: 3 },
-  { id: 'B1', name: 'Branch Skill 1', cost: 2, desc: 'First branch skill.', deps: ['T1', 'T2'], slots: 2 },
-  { id: 'B2', name: 'Branch Skill 2', cost: 2, desc: 'Second branch skill.', deps: ['T1', 'T2'], slots: 2 },
-  { id: 'B3', name: 'Branch Skill 3', cost: 2, desc: 'Third branch skill.', deps: ['T1', 'T2'], slots: 2 },
-  { id: 'B4', name: 'Branch Skill 4', cost: 2, desc: 'Fourth branch skill.', deps: ['T1', 'T2'], slots: 2 },
-  { id: 'B5', name: 'Branch Skill 5', cost: 2, desc: 'Fifth branch skill.', deps: ['T1', 'T2'], slots: 2 },
-  { id: 'C1', name: 'Crown Skill', cost: 5, desc: 'Crown skill.', deps: ['B1', 'B2', 'B3', 'B4', 'B5'], slots: 5 },
-  { id: 'H1', name: 'Hidden Path Skill', cost: 5, desc: 'Hidden path skill.', deps: ['C1'], slots: 3 }
+  { id: 'T1', name: 'Trunk Skill 1', cost: 1, desc: 'First trunk skill.', deps: [], slots: 3, pointsAllocated: 0 },
+  { id: 'T2', name: 'Trunk Skill 2', cost: 1, desc: 'Second trunk skill.', deps: [], slots: 3, pointsAllocated: 0 },
+  { id: 'B1', name: 'Branch Skill 1', cost: 2, desc: 'First branch skill.', deps: ['T1', 'T2'], slots: 2, pointsAllocated: 0 },
+  { id: 'B2', name: 'Branch Skill 2', cost: 2, desc: 'Second branch skill.', deps: ['T1', 'T2'], slots: 2, pointsAllocated: 0 },
+  { id: 'B3', name: 'Branch Skill 3', cost: 2, desc: 'Third branch skill.', deps: ['T1', 'T2'], slots: 2, pointsAllocated: 0 },
+  { id: 'B4', name: 'Branch Skill 4', cost: 2, desc: 'Fourth branch skill.', deps: ['T1', 'T2'], slots: 2, pointsAllocated: 0 },
+  { id: 'B5', name: 'Branch Skill 5', cost: 2, desc: 'Fifth branch skill.', deps: ['T1', 'T2'], slots: 2, pointsAllocated: 0 },
+  { id: 'C1', name: 'Crown Skill', cost: 5, desc: 'Crown skill.', deps: ['B1', 'B2', 'B3', 'B4', 'B5'], slots: 5, pointsAllocated: 0 },
+  { id: 'H1', name: 'Hidden Path Skill', cost: 5, desc: 'Hidden path skill.', deps: ['C1'], slots: 3, pointsAllocated: 0 }
 ]);
 
 const unlocked = ref(new Set());
@@ -149,8 +161,10 @@ const canUnlock = (id) => {
 
 function invest(skill) {
   if (!canUnlock(skill.id)) return;
-  skillPoints.value -= skill.cost;
-  unlocked.value.add(skill.id);
+  if (skill.pointsAllocated < skill.slots) {
+    skillPoints.value -= skill.cost;
+    skill.pointsAllocated += 1;
+  }
 }
 
 function resetTree() {
@@ -161,6 +175,7 @@ function resetTree() {
   });
   skillPoints.value += refunded;
   unlocked.value = new Set();
+  skills.value.forEach(skill => skill.pointsAllocated = 0);
 }
 
 function nodeClasses(skill) {
