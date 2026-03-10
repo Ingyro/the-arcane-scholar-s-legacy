@@ -1,6 +1,5 @@
 <template>
   <section :class="[themeClasses.primaryBg, themeClasses.primaryText, themeClasses.accentBorder, 'p-6 rounded-lg shadow-xl border']">
-
     <div class="flex items-center justify-between mb-4">
       <h2 class="text-3xl font-serif" :class="themeClasses.primaryText">Skill Tree</h2>
       <div class="text-sm flex items-center space-x-3">
@@ -8,9 +7,9 @@
         <button @click="resetTree" class="px-3 py-1 rounded bg-red-700 hover:bg-red-600 text-white text-sm">Reset</button>
       </div>
     </div>
-
+    
     <p class="text-lg mb-4" :class="themeClasses.primaryText">Forge your destiny by mastering powerful skills and abilities.</p>
-
+    
     <div class="grid grid-cols-3 gap-6">
       <div v-for="skill in skills" :key="skill.id" class="relative">
         <div
@@ -32,7 +31,6 @@
         </div>
       </div>
     </div>
-
   </section>
 </template>
 
@@ -40,12 +38,12 @@
 import { defineProps, ref, computed } from 'vue';
 
 const props = defineProps({
-  themeClasses: { 
-    type: Object, 
+  themeClasses: {
+    type: Object,
     required: true,
-    default: () => ({ 
+    default: () => ({
       primaryBg: 'bg-gray-950',
-      primaryText: 'text-yellow-300', 
+      primaryText: 'text-yellow-300',
       accentBorder: 'border-yellow-600',
       sidebarBg: 'bg-violet-950',
       activeMenuBg: 'bg-green-800'
