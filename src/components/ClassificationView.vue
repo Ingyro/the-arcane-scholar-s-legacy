@@ -150,6 +150,7 @@
 import { defineProps, ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { getAuth } from "firebase/auth";
 import { getFirestore, collectionGroup, onSnapshot, query, doc, getDoc } from "firebase/firestore";
+import { formatLargeNumber } from '@/utils/gameUtils.js'; // Ensure this line is present
 
 // --- Props ---
 const props = defineProps({
