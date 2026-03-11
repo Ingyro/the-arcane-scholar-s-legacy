@@ -1,39 +1,21 @@
 <template>
-  <!-- 
-    The main layout is simplified. 
-    It's now a flex-col container. The header is at the top,
-    the main content fills the space, and the nav dock floats on top.
-  -->
   <div :class="[themeClasses.primaryBg, themeClasses.primaryText, 'flex flex-col h-screen w-full font-sans overflow-hidden']">
     
-    <!-- 
-      HEADER: RESPONSIVE CHANGES
-    -->
     <header :class="[themeClasses.headerBg, themeClasses.headerText, 'shadow-lg border-b', themeClasses.accentBorder, themeClasses.shadowColor, 'flex flex-nowrap items-center justify-between p-2 z-20']">
       
-      <!-- 
-        TITLE: RESPONSIVE CHANGES
-      -->
       <h1 class="text-xl lg:text-3xl font-serif tracking-wide text-left truncate flex items-center space-x-2 flex-shrink min-w-0" :title="`The Arcane Scholar’s Legacy || ${characterDetails.name}`">
-        <!-- Mobile View: Logo + Name -->
         <span class="lg:hidden flex items-center space-x-2">
-          <img src="/src/assets/logo.svg" alt="The Arcane Scholar's Legacy" class="h-8 w-8"> <!-- Logo -->
-          <span class="truncate text-lg">{{ characterDetails.name }}</span> <!-- Font size reduced -->
+          <img src="/src/assets/logo.svg" alt="The Arcane Scholar's Legacy" class="h-8 w-8">
+          <span class="truncate text-lg">{{ characterDetails.name }}</span>
         </span>
-        <!-- Desktop View: Logo + Full Title + Name -->
         <span class="hidden lg:flex items-center space-x-3">
-          <img src="/src/assets/logo.svg" alt="The Arcane Scholar's Legacy" class="h-10 w-10"> <!-- Logo -->
+          <img src="/src/assets/logo.svg" alt="The Arcane Scholar's Legacy" class="h-10 w-10">
           <span class="truncate">The Arcane Scholar’s Legacy || {{ characterDetails.name }}</span>
         </span>
       </h1>
       
-      <!-- 
-        STATS & BUTTONS CONTAINER: 
-      -->
       <div class="flex items-center justify-end ml-auto flex-shrink-0">
-        <!-- Stats Container: Groups stats together -->
         <div class="flex items-center space-x-1 sm:space-x-2 lg:space-x-3">
-          <!-- Stats -->
           <span class="flex items-center space-x-1" title="Prestige">
             <span class="text-lg lg:text-xl">💎</span>
             <span class="font-bold text-base lg:text-xl min-w-[3rem] lg:min-w-[4rem] text-right">{{ characterDetails.prestige }}</span>
@@ -51,12 +33,7 @@
           </span>
         </div>
 
-        <!-- Buttons Container: Groups buttons together -->
         <div class="flex items-center space-x-1 sm:space-x-2 lg:space-x-3 ml-2 lg:ml-4">
-          <!-- 
-            BUTTONS: RESPONSIVE CHANGES
-            - Icon-only on mobile (p-2)
-          -->
           <button @click="saveGameProgress"
                   :disabled="saving"
                   :class="[themeClasses.buttonBg, themeClasses.buttonText, themeClasses.buttonHover, 'font-bold p-2 lg:py-2 lg:px-4 text-sm lg:text-base rounded-md lg:rounded-lg shadow-md transition duration-300 ease-in-out flex items-center justify-center', saving ? 'opacity-50 cursor-not-allowed' : '']"
@@ -78,15 +55,8 @@
           </button>
         </div>
       </div>
-      <!-- END of STATS & BUTTONS CONTAINER -->
     </header>
 
-    <!-- 
-      MAIN CONTENT AREA:
-      - `<main>` now fills the remaining space (`flex-1`) and handles its own scrolling.
-      - `pb-24` (padding-bottom) is crucial to prevent the new floating
-        dock from covering content at the bottom of the scroll on mobile.
-    -->
     <main :class="['flex-1 p-6 overflow-y-auto custom-scrollbar pb-24 lg:pb-6', themeClasses.primaryBg]">
       <SanctumView
         v-if="activeMenu === 'sanctum'"
@@ -100,22 +70,10 @@
         @buy-multiplier="buyMultiplier"
         @advance-tier="advanceToNextTier"
       />
-      <ResearchView 
-        v-else-if="activeMenu === 'research'" 
-        :theme-classes="themeClasses"
-      />
-      <ExpeditionsView 
-        v-else-if="activeMenu === 'expeditions'" 
-        :theme-classes="themeClasses"
-      />
-      <InventoryView 
-        v-else-if="activeMenu === 'inventory'" 
-        :theme-classes="themeClasses"
-      />
-      <SkillTreeView 
-        v-else-if="activeMenu === 'skill-tree'" 
-        :theme-classes="themeClasses"
-      />
+      <ResearchView v-else-if="activeMenu === 'research'" :theme-classes="themeClasses" />
+      <ExpeditionsView v-else-if="activeMenu === 'expeditions'" :theme-classes="themeClasses" />
+      <InventoryView v-else-if="activeMenu === 'inventory'" :theme-classes="themeClasses" />
+      <SkillTreeView v-else-if="activeMenu === 'skill-tree'" :theme-classes="themeClasses" />
       <ClassificationView 
         v-else-if="activeMenu === 'classification'" 
         :class="[themeClasses.primaryBg, 'h-full']"
@@ -123,9 +81,22 @@
       />
     </main>
 
-    <!-- 
-      *** NEW FLOATING DOCK ***
-    -->
+    <div v-if="showTierModal" class="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md px-4">
+      <div :class="[themeClasses.headerBg, 'p-8 rounded-2xl border-2 max-w-md text-center shadow-2xl transition-all scale-110', themeClasses.accentBorder]">
+        <h2 class="text-3xl font-serif mb-4" :class="themeClasses.headerText">Tier Breakthrough!</h2>
+        <p class="mb-6 opacity-90 text-lg" :class="themeClasses.headerText">You have mastered this tier's mysteries. Choose a permanent insight to carry forward.</p>
+        
+        <div class="space-y-4">
+          <button 
+            @click="applyTierBoost"
+            :class="[themeClasses.buttonBg, themeClasses.buttonText, 'w-full py-4 px-6 rounded-xl font-bold text-lg shadow-lg hover:scale-105 transition-transform']"
+          >
+            Arcane Efficiency (+25% Global Production)
+          </button>
+        </div>
+      </div>
+    </div>
+
     <nav :class="[
         themeClasses.headerBg, 
         themeClasses.accentBorder, 
@@ -135,8 +106,6 @@
         'space-x-0 lg:space-x-2', 
         'lg:rounded-full shadow-2xl border z-50'
       ]">
-      
-      <!-- Dock Buttons -->
       <button 
         v-for="menuItem in menuItems" 
         :key="menuItem.id"
@@ -151,12 +120,7 @@
         ]"
         :title="menuItem.name"
       >
-        
-        <span class="text-3xl lg:text-3xl flex-shrink-0">
-          {{ menuItem.icon }}
-        </span>
-        
-        <!-- Tooltip -->
+        <span class="text-3xl lg:text-3xl flex-shrink-0">{{ menuItem.icon }}</span>
         <span :class="[
             themeClasses.sidebarBg, 
             themeClasses.primaryText,
@@ -168,7 +132,6 @@
         </span>
       </button>
     </nav>
-
   </div>
 </template>
 
@@ -176,10 +139,9 @@
 import { ref, onMounted, onUnmounted, computed, watch } from 'vue';
 import { getAuth } from 'firebase/auth';
 import { getFirestore, doc, getDoc, setDoc, Timestamp } from 'firebase/firestore';
+import { formatLargeNumber } from '@/utils/gameUtils';
 
-// Note: defineProps and defineEmits are compiler macros in <script setup> and do not need to be imported from 'vue'.
-
-// Import the view components
+// Views
 import SanctumView from './SanctumView.vue';
 import ResearchView from './ResearchView.vue';
 import ExpeditionsView from './ExpeditionsView.vue';
@@ -194,6 +156,11 @@ const props = defineProps({
 
 const emit = defineEmits(['returnToCharacterSelect']);
 
+// --- BALANCING CONSTANTS ---
+const TIER_COST_SCALE = 4;   
+const TIER_POWER_SCALE = 2.2; 
+
+// --- STATE ---
 const knowledge = ref(0);
 const displayedKnowledge = ref(0);
 const characterDetails = ref({ name: '', faction: '', specialty: '', prestige: 0, location: '' });
@@ -202,135 +169,61 @@ const activeMenu = ref('sanctum');
 const saving = ref(false);
 const currentTierIndex = ref(0); 
 const skillPoints = ref(0); 
+const tierBoosts = ref(1); 
+const showTierModal = ref(false);
 
 const auth = getAuth();
 const db = getFirestore();
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
-// Import utility functions
-import { formatLargeNumber } from '@/utils/gameUtils';
-
-// --- THEME LOGIC (Unchanged) ---
+// --- THEME LOGIC ---
 const themeClasses = computed(() => {
   const { faction, specialty } = characterDetails.value;
   let theme = {
-    primaryBg: 'bg-white',
-    primaryText: 'text-black',
-    headerBg: 'bg-gray-800',
-    headerText: 'text-white',
-    accentBorder: 'border-gray-400',
-    sidebarBg: 'bg-gray-100', // Used for tooltips now
-    activeMenuBg: 'bg-blue-600', // Made active menu blue
-    activeMenuText: 'text-white',
-    shadowColor: 'shadow-gray-500/30',
-    buttonBg: 'bg-blue-600',
-    buttonText: 'text-white',
-    buttonHover: 'hover:bg-blue-700',
-    buttonSecondaryBg: 'bg-gray-500',
-    buttonSecondaryText: 'text-white',
-    buttonSecondaryHover: 'hover:bg-gray-600',
-    buttonUrgentBg: 'bg-red-600',
-    buttonUrgentText: 'text-white',
-    buttonUrgentHover: 'hover:bg-red-700',
+    primaryBg: 'bg-white', primaryText: 'text-black', headerBg: 'bg-gray-800',
+    headerText: 'text-white', accentBorder: 'border-gray-400', sidebarBg: 'bg-gray-100',
+    activeMenuBg: 'bg-blue-600', activeMenuText: 'text-white', shadowColor: 'shadow-gray-500/30',
+    buttonBg: 'bg-blue-600', buttonText: 'text-white', buttonHover: 'hover:bg-blue-700',
+    buttonSecondaryBg: 'bg-gray-500', buttonSecondaryText: 'text-white', buttonSecondaryHover: 'hover:bg-gray-600',
+    buttonUrgentBg: 'bg-red-600', buttonUrgentText: 'text-white', buttonUrgentHover: 'hover:bg-red-700',
   };
   if (faction === 'Lumen') {
     if (specialty === 'Alchemist') {
-      theme = {
-        primaryBg: 'bg-white',
-        primaryText: 'text-[#7d6b5b]',
-        headerBg: 'bg-[#13c2eb]',
-        headerText: 'text-white',
-        accentBorder: 'border-[#bd895b]',
-        sidebarBg: 'bg-gray-50',
-        activeMenuBg: 'bg-[#fc963a]', // Active is orange
-        activeMenuText: 'text-white',
-        shadowColor: 'shadow-[#13c2eb]/30',
-        buttonBg: 'bg-[#fc963a]',
-        buttonText: 'text-white',
-        buttonHover: 'hover:bg-[#e0862a]',
-        buttonSecondaryBg: 'bg-[#7d6b5b]',
-        buttonSecondaryText: 'text-white',
-        buttonSecondaryHover: 'hover:bg-[#6b5a4a]',
-        buttonUrgentBg: 'bg-red-600',
-        buttonUrgentText: 'text-white',
-        buttonUrgentHover: 'hover:bg-red-700',
-      };
+      theme = { ...theme, headerBg: 'bg-[#13c2eb]', accentBorder: 'border-[#bd895b]', activeMenuBg: 'bg-[#fc963a]', buttonBg: 'bg-[#fc963a]', primaryText: 'text-[#7d6b5b]' };
     } else if (specialty === 'Arcane') {
-      theme = {
-        primaryBg: 'bg-white',
-        primaryText: 'text-[#5b6c7d]',
-        headerBg: 'bg-[#eea221]',
-        headerText: 'text-white',
-        accentBorder: 'border-[#a78d5e]',
-        sidebarBg: 'bg-gray-50',
-        activeMenuBg: 'bg-[#3a98fc]', // Active is blue
-        activeMenuText: 'text-white',
-        shadowColor: 'shadow-[#3a98fc]/30',
-        buttonBg: 'bg-[#3a98fc]',
-        buttonText: 'text-white',
-        buttonHover: 'hover:bg-[#3386DF]',
-        buttonSecondaryBg: 'bg-[#5b8abd]',
-        buttonSecondaryText: 'text-white',
-        buttonSecondaryHover: 'hover:bg-[#4a77a8]',
-        buttonUrgentBg: 'bg-red-600',
-        buttonUrgentText: 'text-white',
-        buttonUrgentHover: 'hover:bg-red-700',
-      };
+      theme = { ...theme, headerBg: 'bg-[#eea221]', accentBorder: 'border-[#a78d5e]', activeMenuBg: 'bg-[#3a98fc]', buttonBg: 'bg-[#3a98fc]', primaryText: 'text-[#5b6c7d]' };
     }
   } else if (faction === 'Umbra') {
     if (specialty === 'Alchemist') {
-      theme = {
-        primaryBg: 'bg-[#332c30]',
-        primaryText: 'text-gray-200', // Fixed syntax
-        headerBg: 'bg-[#55cd4a]',
-        headerText: 'text-black', // Changed for visibility on green
-        accentBorder: 'border-[#704460]',
-        sidebarBg: 'bg-[#4a3d44]', // Darker sidebar for tooltips
-        activeMenuBg: 'bg-[#b03f85]', // Active is magenta
-        activeMenuText: 'text-white',
-        shadowColor: 'shadow-[#b03f85]/30',
-        buttonBg: 'bg-[#b03f85]',
-        buttonText: 'text-white', // White text on magenta
-        buttonHover: 'hover:bg-[#93356F]',
-        buttonSecondaryBg: 'bg-[#704460]',
-        buttonSecondaryText: 'text-white',
-        buttonSecondaryHover: 'hover:bg-[#5f3951]',
-        buttonUrgentBg: 'bg-red-500',
-        buttonUrgentText: 'text-white',
-        buttonUrgentHover: 'hover:bg-red-600',
-      };
+      theme = { ...theme, primaryBg: 'bg-[#332c30]', primaryText: 'text-gray-200', headerBg: 'bg-[#55cd4a]', headerText: 'text-black', activeMenuBg: 'bg-[#b03f85]', buttonBg: 'bg-[#b03f85]' };
     } else if (specialty === 'Arcane') {
-      theme = {
-        primaryBg: 'bg-[#2a3b29]', // Darker green
-        primaryText: 'text-gray-100', // Light text
-        headerBg: 'bg-[#611462]',
-        headerText: 'text-[#82fc3a]',
-        accentBorder: 'border-[#a65ea6]',
-        sidebarBg: 'bg-[#4d5c4c]', // Darker sidebar for tooltips
-        activeMenuBg: 'bg-[#82fc3a]', // Active is lime
-        activeMenuText: 'text-black', // Black text on lime
-        shadowColor: 'shadow-[#82fc3a]/30',
-        buttonBg: 'bg-[#82fc3a]',
-        buttonText: 'text-black',
-        buttonHover: 'hover:bg-[#73e334]',
-        buttonSecondaryBg: 'bg-[#687d5b]',
-        buttonSecondaryText: 'text-white',
-        buttonSecondaryHover: 'hover:bg-[#56684a]',
-        buttonUrgentBg: 'bg-red-500',
-        buttonUrgentText: 'text-white',
-        buttonUrgentHover: 'hover:bg-red-600',
-      };
+      theme = { ...theme, primaryBg: 'bg-[#2a3b29]', primaryText: 'text-gray-100', headerBg: 'bg-[#611462]', headerText: 'text-[#82fc3a]', activeMenuBg: 'bg-[#82fc3a]', buttonBg: 'bg-[#82fc3a]', buttonText: 'text-black' };
     }
   }
   return theme;
 });
 
-// --- PRESTIGE MULTIPLIER (Unchanged) ---
+// --- BALANCED MULTIPLIERS ---
 const prestigeMultiplier = computed(() => {
-  return 1 + (characterDetails.value.prestige * 0.10);
+  return Math.pow(1.5, characterDetails.value.prestige);
 });
 
-// --- TIER/MULTIPLIER NAME FUNCTIONS (Unchanged) ---
+const passiveKnowledgeGain = computed(() => {
+  let totalGain = 0;
+  multiplierTiers.value.forEach(tier => {
+    if (tier.unlocked) { 
+      tier.multipliers.forEach(item => {
+        if (item.level > 0) {
+          // Milestone Bonus Removed - Using simple exponential level scaling
+          totalGain += item.baseEffect * Math.pow(item.effectMultiplier, item.level - 1);
+        }
+      });
+    }
+  });
+  return totalGain * prestigeMultiplier.value * tierBoosts.value; 
+});
+
+// --- HELPER FUNCTIONS ---
 const getTierName = (tierIndex) => {
     const { faction, specialty } = characterDetails.value;
     let names = ["Novice Whispers", "Apprentice Glyphs", "Adept's Tomes", "Mystic Runes", "Etheric Weavings", "Celestial Charts", "Planar Bindings", "Chronomancer's Texts", "Abjurer's Wards", "Transmuter's Circles", "Grandmaster's Codex", "Archmage's Grimoire", "Aetheric Formulas", "Cosmic Inscriptions", "Reality Equations", "Void Manuscripts", "Primordial Truths", "Ascendant Doctrines", "God-Hand Schematics", "Nexus of All Knowledge"];
@@ -343,6 +236,7 @@ const getTierName = (tierIndex) => {
     }
     return names[tierIndex] || `Esoteric Tier ${tierIndex + 1}`;
 };
+
 const getMultiplierNames = () => {
   const { faction, specialty } = characterDetails.value;
   let names = ['Conduits', 'Scrolls', 'Crystals', 'Orbs'];
@@ -356,14 +250,13 @@ const getMultiplierNames = () => {
   return names;
 };
 
-// --- GAME LOGIC FUNCTIONS ---
+// --- CORE GAME ACTIONS ---
 const generateMultiplierTiers = () => {
   const tiers = [];
   const baseNames = getMultiplierNames(); 
-  const currentPrestigeMultiplier = prestigeMultiplier.value;
   for (let i = 0; i < 20; i++) {
-    const tierPower = Math.pow(1.8, i);
-    const tierCostScale = Math.pow(8, i);
+    const tierPower = Math.pow(TIER_POWER_SCALE, i);
+    const tierCostScale = Math.pow(TIER_COST_SCALE, i);
     const maxLevel = 20 + (i * 20);
     tiers.push({
       name: `Tier ${i + 1}: ${getTierName(i)}`,
@@ -372,8 +265,8 @@ const generateMultiplierTiers = () => {
         level: 0,
         maxLevel: maxLevel,
         baseCost: (10 + j * 40) * tierCostScale, 
-        costMultiplier: 1.09 + (i * 0.01),
-        baseEffect: (0.1 + j * 0.4) * tierPower * currentPrestigeMultiplier, 
+        costMultiplier: 1.07 + (i * 0.01),
+        baseEffect: (0.1 + j * 0.4) * tierPower, 
         effectMultiplier: 1.10 + (i * 0.005),
         name: name
       }))
@@ -381,28 +274,16 @@ const generateMultiplierTiers = () => {
   }
   return tiers;
 };
-const passiveKnowledgeGain = computed(() => {
-  let totalGain = 0;
-  multiplierTiers.value.forEach(tier => {
-    if (tier.unlocked) { 
-      tier.multipliers.forEach(item => {
-        if (item.level > 0) {
-          totalGain += item.baseEffect * Math.pow(item.effectMultiplier, item.level - 1);
-        }
-      });
-    }
-  });
-  return totalGain; 
-});
-const generateKnowledge = () => { 
-    knowledge.value += passiveKnowledgeGain.value || 1; 
-};
+
+const generateKnowledge = () => { knowledge.value += passiveKnowledgeGain.value || 1; };
+
 const getNextLevelCost = (tierIndex, multiplierIndex) => {
   const item = multiplierTiers.value[tierIndex]?.multipliers[multiplierIndex];
   if (!item) return Infinity;
-  const baseCostDiscounted = item.baseCost / prestigeMultiplier.value;
-  return baseCostDiscounted * Math.pow(item.costMultiplier, item.level);
+  const discount = 1 + (characterDetails.value.prestige * 0.05);
+  return (item.baseCost / discount) * Math.pow(item.costMultiplier, item.level);
 };
+
 const buyMultiplier = ({ tierIndex, multiplierIndex }) => {
   const tier = multiplierTiers.value[tierIndex];
   const item = tier?.multipliers[multiplierIndex];
@@ -421,38 +302,51 @@ const buyMultiplier = ({ tierIndex, multiplierIndex }) => {
     saveGameProgress();
   }
 };
+
+const advanceToNextTier = () => {
+  const currentTier = multiplierTiers.value[currentTierIndex.value];
+  if (!currentTier || !currentTier.multipliers.every(m => m.level === m.maxLevel)) return;
+  
+  const nextTierExists = multiplierTiers.value[currentTierIndex.value + 1];
+  if (!nextTierExists) {
+    initiatePrestige();
+  } else {
+    showTierModal.value = true;
+  }
+};
+
+const applyTierBoost = () => {
+  tierBoosts.value *= 1.25; 
+  currentTierIndex.value += 1;
+  showTierModal.value = false;
+  saveGameProgress();
+};
+
 const initiatePrestige = () => {
   characterDetails.value.prestige += 1;
-  if (characterDetails.value.prestige > 0 && characterDetails.value.prestige % 10 === 0) {
+  if (characterDetails.value.prestige % 10 === 0) {
     skillPoints.value += 1;
   }
   knowledge.value = 0;
   displayedKnowledge.value = 0;
   currentTierIndex.value = 0;
+  tierBoosts.value = 1; 
   multiplierTiers.value = generateMultiplierTiers(); 
   saveGameProgress();
 };
-const advanceToNextTier = () => {
-  const currentTier = multiplierTiers.value[currentTierIndex.value];
-  const nextTierExists = multiplierTiers.value[currentTierIndex.value + 1];
-  if (!currentTier || !currentTier.multipliers.every(m => m.level === m.maxLevel)) return;
-  if (!nextTierExists) {
-    initiatePrestige();
-  } else if (multiplierTiers.value[currentTierIndex.value + 1].unlocked) {
-    currentTierIndex.value += 1; 
-    saveGameProgress();
-  }
-};
+
+// --- DATA PERSISTENCE ---
 const saveGameProgress = async () => {
   saving.value = true;
   if (!auth.currentUser || !props.characterId) return;
   const userId = auth.currentUser.uid;
   const characterDocRef = doc(db, `artifacts/${appId}/users/${userId}/characters`, props.characterId);
-  const leaderboardDocRef = doc(db, `artifacts/${appId}/public/data/leaderboard`, props.characterId);
+  
   const privateSaveData = {
     knowledge: knowledge.value,
     prestige: characterDetails.value.prestige,
     currentTierIndex: currentTierIndex.value, 
+    tierBoosts: tierBoosts.value,
     multiplierTiers: multiplierTiers.value.map(tier => ({
         unlocked: tier.unlocked,
         levels: tier.multipliers.map(m => m.level)
@@ -460,25 +354,23 @@ const saveGameProgress = async () => {
     skillPoints: skillPoints.value, 
     lastSaved: Timestamp.now(),
   };
-  const publicLeaderboardData = {
-    name: characterDetails.value.name,
-    prestige: characterDetails.value.prestige,
-    faction: characterDetails.value.faction,
-    specialty: characterDetails.value.specialty,
-    location: characterDetails.value.location, 
-    userId: userId, 
-    currentTierIndex: currentTierIndex.value,
-    lastUpdated: Timestamp.now(),
-  };
+
   try {
     await setDoc(characterDocRef, privateSaveData, { merge: true });
-    await setDoc(leaderboardDocRef, publicLeaderboardData, { merge: true });
+    const leaderboardDocRef = doc(db, `artifacts/${appId}/public/data/leaderboard`, props.characterId);
+    await setDoc(leaderboardDocRef, {
+      name: characterDetails.value.name,
+      prestige: characterDetails.value.prestige,
+      currentTierIndex: currentTierIndex.value,
+      lastUpdated: Timestamp.now(),
+    }, { merge: true });
   } catch (error) {
-    console.error('Error saving game progress:', error);
+    console.error('Error saving:', error);
   } finally {
     saving.value = false;
   }
 };
+
 const loadGameProgress = async () => {
   if (!auth.currentUser || !props.characterId) return;
   const characterDocRef = doc(db, `artifacts/${appId}/users/${auth.currentUser.uid}/characters`, props.characterId);
@@ -486,80 +378,58 @@ const loadGameProgress = async () => {
     const docSnap = await getDoc(characterDocRef);
     if (docSnap.exists()) {
       const data = docSnap.data();
-      characterDetails.value.name = data.name || 'Scholar';
-      characterDetails.value.faction = data.faction || '';
-      characterDetails.value.specialty = data.specialty || '';
-      characterDetails.value.prestige = data.prestige || 0;
-      characterDetails.value.location = data.location || ''; 
+      characterDetails.value = { ...characterDetails.value, ...data };
       skillPoints.value = data.skillPoints || 0; 
       currentTierIndex.value = data.currentTierIndex || 0;
+      tierBoosts.value = data.tierBoosts || 1;
+
       const generatedTiers = generateMultiplierTiers();
       if (data.multiplierTiers) {
-        data.multiplierTiers.forEach((savedTier, tierIndex) => {
-          if (generatedTiers[tierIndex]) {
-            generatedTiers[tierIndex].unlocked = savedTier.unlocked;
-            savedTier.levels.forEach((level, multiplierIndex) => {
-              if (generatedTiers[tierIndex].multipliers[multiplierIndex]) {
-                generatedTiers[tierIndex].multipliers[multiplierIndex].level = level;
-              }
+        data.multiplierTiers.forEach((savedTier, i) => {
+          if (generatedTiers[i]) {
+            generatedTiers[i].unlocked = savedTier.unlocked;
+            savedTier.levels.forEach((lvl, j) => {
+              if (generatedTiers[i].multipliers[j]) generatedTiers[i].multipliers[j].level = lvl;
             });
           }
         });
       }
       multiplierTiers.value = generatedTiers;
-      const loadedKnowledge = data.knowledge || 0;
-      if (data.lastSaved && passiveKnowledgeGain.value > 0) {
-        const timeElapsedSeconds = (new Date().getTime() - data.lastSaved.toDate().getTime()) / 1000;
-        knowledge.value = timeElapsedSeconds > 0 ? loadedKnowledge + (timeElapsedSeconds * passiveKnowledgeGain.value) : loadedKnowledge;
-      } else {
-        knowledge.value = loadedKnowledge;
-      }
+      knowledge.value = data.knowledge || 0;
       displayedKnowledge.value = knowledge.value;
     } else {
       multiplierTiers.value = generateMultiplierTiers();
-      knowledge.value = 0;
-      displayedKnowledge.value = 0;
-      currentTierIndex.value = 0;
-      skillPoints.value = 0;
     }
   } catch (error) {
-    console.error('Error loading game progress:', error);
+    console.error('Error loading:', error);
     multiplierTiers.value = generateMultiplierTiers();
   }
 };
 
-// --- ANIMATION / LOGOUT FUNCTIONS (Unchanged) ---
+// --- ANIMATION & LIFECYCLE ---
 let animationFrameId = null;
-watch(knowledge, (newValue) => {
+watch(knowledge, (newVal) => {
   if (animationFrameId) cancelAnimationFrame(animationFrameId);
   const animate = () => {
-    const difference = newValue - displayedKnowledge.value;
-    const step = difference / 20;
-    if (Math.abs(difference) < 0.01) {
-      displayedKnowledge.value = newValue;
-      animationFrameId = null;
+    const diff = newVal - displayedKnowledge.value;
+    if (Math.abs(diff) < 0.1) {
+      displayedKnowledge.value = newVal;
     } else {
-      displayedKnowledge.value += step;
+      displayedKnowledge.value += diff / 10;
       animationFrameId = requestAnimationFrame(animate);
     }
   };
   animate();
 });
-const handleLogout = async () => {
-  await saveGameProgress();
-  await auth.signOut();
-};
-const returnToCharacterSelect = async () => {
-  await saveGameProgress();
-  emit('returnToCharacterSelect');
-};
+
+const handleLogout = async () => { await saveGameProgress(); await auth.signOut(); };
+const returnToCharacterSelect = async () => { await saveGameProgress(); emit('returnToCharacterSelect'); };
+
 let knowledgeInterval = null;
 onMounted(() => {
   loadGameProgress(); 
   knowledgeInterval = setInterval(() => {
-    if (passiveKnowledgeGain.value > 0) {
-        knowledge.value += passiveKnowledgeGain.value;
-    }
+    if (passiveKnowledgeGain.value > 0) knowledge.value += passiveKnowledgeGain.value;
   }, 1000);
 });
 onUnmounted(async () => {
@@ -568,7 +438,6 @@ onUnmounted(async () => {
   await saveGameProgress();
 });
 
-// --- MENU ITEMS (Unchanged) ---
 const menuItems = [
   { id: 'sanctum', name: 'Sanctum / Home', icon: '🏠' },
   { id: 'research', name: 'Research', icon: '🔬' },
@@ -580,19 +449,7 @@ const menuItems = [
 </script>
 
 <style scoped>
-/* Custom scrollbar styles remain unchanged, 
-  but they are now applied to the <main> element.
-*/
-.custom-scrollbar::-webkit-scrollbar { width: 12px; }
-.custom-scrollbar::-webkit-scrollbar-track { background: #f0f0f0; border-radius: 10px; }
-.custom-scrollbar::-webkit-scrollbar-thumb { background-color: #a07d3a; border-radius: 10px; border: 3px solid #f0f0f0; }
-.bg-white.custom-scrollbar::-webkit-scrollbar-track { background: #f0f0f0; }
-.bg-white.custom-scrollbar::-webkit-scrollbar-thumb { background-color: #a07d3a; border-color: #f0f0f0; }
-.bg-gray-50.custom-scrollbar::-webkit-scrollbar-track { background: #f0f0f0; }
-.bg-gray-50.custom-scrollbar::-webkit-scrollbar-thumb { background-color: #a07d3a; border-color: #f0f0f0; }
-.bg-\[\#332c30\].custom-scrollbar::-webkit-scrollbar-track { background: #222; }
-.bg-\[\#332c30\].custom-scrollbar::-webkit-scrollbar-thumb { background-color: #b03f85; border-color: #222; }
-.bg-\[\#2a3b29\].custom-scrollbar::-webkit-scrollbar-track { background: #1a2419; }
-.bg-\[\#2a3b29\].custom-scrollbar::-webkit-scrollbar-thumb { background-color: #82fc3a; border-color: #1a2419; }
-
+.custom-scrollbar::-webkit-scrollbar { width: 10px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(150, 150, 150, 0.2); border-radius: 10px; }
 </style>
