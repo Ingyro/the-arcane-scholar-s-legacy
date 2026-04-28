@@ -378,31 +378,56 @@ const loadGameProgress = async () => {
     const docSnap = await getDoc(characterDocRef);
     if (docSnap.exists()) {
       const data = docSnap.data();
+
+      // 1. Load basic stats first
       characterDetails.value = { ...characterDetails.value, ...data };
-      skillPoints.value = data.skillPoints || 0; 
+      skillPoints.value = data.skillPoints || 0;
       currentTierIndex.value = data.currentTierIndex || 0;
       tierBoosts.value = data.tierBoosts || 1;
 
+      // 2. Generate and load tier levels
       const generatedTiers = generateMultiplierTiers();
       if (data.multiplierTiers) {
         data.multiplierTiers.forEach((savedTier, i) => {
           if (generatedTiers[i]) {
             generatedTiers[i].unlocked = savedTier.unlocked;
             savedTier.levels.forEach((lvl, j) => {
-              if (generatedTiers[i].multipliers[j]) generatedTiers[i].multipliers[j].level = lvl;
+              if (generatedTiers[i].multipliers[j]) {
+                generatedTiers[i].multipliers[j].level = lvl;
+              }
             });
           }
         });
       }
       multiplierTiers.value = generatedTiers;
+
+      // 3. LOAD SAVED KNOWLEDGE BASE VALUE
       knowledge.value = data.knowledge || 0;
+
+      // 4. CALCULATE IDLE TIME
+      const lastSavedTimestamp = data.lastSaved;
+      let idleSeconds = 0;
+      if (lastSavedTimestamp) {
+        const now = Timestamp.now();
+        const differenceMs = now.toMillis() - lastSavedTimestamp.toMillis();
+        idleSeconds = Math.max(0, Math.floor(differenceMs / 1000));
+      }
+
+      // 5. APPLY IDLE GAIN TO THE LOADED KNOWLEDGE
+      // Note: passiveKnowledgeGain is computed based on the tiers we just loaded
+      if (idleSeconds > 0 && passiveKnowledgeGain.value > 0) {
+        const gained = passiveKnowledgeGain.value * idleSeconds;
+        knowledge.value += gained;
+        console.log(`Recovered ${formatLargeNumber(gained)} knowledge from idle time.`);
+      }
+
       displayedKnowledge.value = knowledge.value;
+      
     } else {
       multiplierTiers.value = generateMultiplierTiers();
     }
   } catch (error) {
     console.error('Error loading:', error);
-    multiplierTiers.value = generateMultiplierTiers();
   }
 };
 
