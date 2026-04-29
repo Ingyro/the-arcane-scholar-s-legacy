@@ -207,3 +207,118 @@ export const fetchUserProfileData = async (userId, db, appId) => {
     }
     return { userName: 'Missing Profile', userLocation: null };
 };
+
+/**
+ * Autoclicker Detection System
+ * Tracks click frequency and enforces progressive penalties.
+ */
+export class AutoclickerDetector {
+  constructor(options = {}) {
+    this.maxClicksPerSecond = options.maxClicksPerSecond || 15;
+    this.attemptCount = this.getAttemptCount();
+    this.clickTimestamps = [];
+    this.isMonitoring = false;
+    this.cooldown = false;
+    this.onViolation = options.onViolation || this.defaultViolationHandler;
+  }
+
+  getAttemptCount() {
+    try {
+      return parseInt(localStorage.getItem('autoclicker_attempts') || '0', 10);
+    } catch (e) {
+      console.warn('LocalStorage unavailable, attempt count will not persist.');
+      return 0;
+    }
+  }
+
+  setAttemptCount(count) {
+    try {
+      localStorage.setItem('autoclicker_attempts', count);
+    } catch (e) {
+      console.warn('Failed to save attempt count to LocalStorage.');
+    }
+  }
+
+  start() {
+    if (this.isMonitoring) return;
+    this.isMonitoring = true;
+    this._clickHandler = this.handleClick.bind(this);
+    document.addEventListener('click', this._clickHandler);
+    console.log('Autoclicker detector started.');
+  }
+
+  stop() {
+    this.isMonitoring = false;
+    if (this._clickHandler) {
+      document.removeEventListener('click', this._clickHandler);
+    }
+  }
+
+  handleClick() {
+    if (this.cooldown) return;
+
+    const now = Date.now();
+    this.clickTimestamps.push(now);
+    
+    // Keep only clicks from the last 1 second
+    this.clickTimestamps = this.clickTimestamps.filter(t => now - t < 1000);
+
+    if (this.clickTimestamps.length > this.maxClicksPerSecond) {
+      this.handleViolation();
+      this.clickTimestamps = []; // Reset timestamps
+      this.cooldown = true;
+      setTimeout(() => { this.cooldown = false; }, 5000); // 5 second cooldown to prevent spam
+    }
+  }
+
+  handleViolation() {
+    this.attemptCount++;
+    this.setAttemptCount(this.attemptCount);
+    this.onViolation(this.attemptCount);
+  }
+
+  defaultViolationHandler(attempt) {
+    if (attempt === 1) {
+      this.showWarning('⚠️ Warning: Autoclicker detected! This is your first warning. The second attempt will result in a penalty.');
+    } else if (attempt === 2) {
+      this.showWarning('⚠️ Penalty: Autoclicker detected again! Your progress will be penalized. The third attempt will result in character deletion.');
+      // TODO: Integrate your game's penalty logic here
+      // e.g., reduce resources, reset progress, etc.
+    } else if (attempt >= 3) {
+      this.showWarning('🚫 Banned: Repeated autoclicker usage detected. Your character will now be deleted.');
+      this.deleteCharacter();
+    }
+  }
+
+  showWarning(message) {
+    // Simple non-blocking overlay compatible with Vue apps
+    const overlay = document.createElement('div');
+    overlay.style.cssText = `
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.85); display: flex; align-items: center;
+      justify-content: center; z-index: 9999; font-family: sans-serif;
+    `;
+    const box = document.createElement('div');
+    box.style.cssText = `
+      background: #1f2937; color: #f3f4f6; padding: 24px; border-radius: 12px;
+      max-width: 450px; text-align: center; border: 2px solid #ef4444;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    `;
+    box.innerHTML = `<p style="margin-bottom: 20px; font-size: 16px; line-height: 1.5;">${message}</p>
+                     <button id="ack-btn" style="padding: 10px 20px; cursor: pointer; background: #ef4444; color: white; border: none; border-radius: 6px; font-weight: bold;">Acknowledge</button>`;
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+    
+    const btn = document.getElementById('ack-btn');
+    btn.onclick = () => {
+      document.body.removeChild(overlay);
+    };
+  }
+
+  deleteCharacter() {
+    console.warn('Character deletion triggered due to cheating.');
+    // TODO: Integrate with your game's save system
+    // Example: localStorage.removeItem('gameSaveData');
+    // window.location.reload();
+  }
+}

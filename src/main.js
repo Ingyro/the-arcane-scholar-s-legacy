@@ -10,11 +10,13 @@ import Chart from 'chart.js/auto' // Use 'chart.js/auto' for automatic registrat
 // 2. Explicitly connect Chart.js to Chartkick's global adapter
 VueChartkick.addAdapter(Chart);
 
-
 // Import Firebase modules
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInWithCustomToken, signInAnonymously } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore'; 
+
+// Import Autoclicker Detector
+import { AutoclickerDetector } from './utils/gameUtils';
 
 // --- Firebase Configuration ---
 const localFirebaseConfig = {
@@ -89,4 +91,8 @@ vueApp.config.globalProperties.$db = db;
 // Before mounting the app, ensure Firebase Auth is initialized
 initializeFirebaseAuth().then(() => {
   vueApp.mount('#app');
+  
+  // Initialize Autoclicker Detection System
+  const detector = new AutoclickerDetector({ maxClicksPerSecond: 15 });
+  detector.start();
 });
