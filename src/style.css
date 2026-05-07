@@ -1,1 +1,2 @@
 @import "tailwindcss";
+@source "../**/*.{vue,js,ts}"; /* Ensures Tailwind scans your Vue components */
