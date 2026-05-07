@@ -214,7 +214,7 @@ export const fetchUserProfileData = async (userId, db, appId) => {
  */
 export class AutoclickerDetector {
   constructor(options = {}) {
-    this.maxClicksPerSecond = options.maxClicksPerSecond || 15;
+    this.maxClicksPerSecond = options.maxClicksPerSecond || 11;
     this.attemptCount = this.getAttemptCount();
     this.clickTimestamps = [];
     this.isMonitoring = false;
