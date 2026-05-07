@@ -1,7 +1,5 @@
 // src/utils/gameUtils.js
 
-import { doc, getDoc } from 'firebase/firestore';
-
 /**
  * Utility to format large numbers (K, M, B, T)
  */
@@ -222,7 +220,6 @@ export class AutoclickerDetector {
     this.isMonitoring = false;
     this.cooldown = false;
     this.onViolation = options.onViolation || this.defaultViolationHandler;
-    this.targetElement = options.targetElement || document;
   }
 
   getAttemptCount() {
@@ -246,18 +243,18 @@ export class AutoclickerDetector {
     if (this.isMonitoring) return;
     this.isMonitoring = true;
     this._clickHandler = this.handleClick.bind(this);
-    this.targetElement.addEventListener('click', this._clickHandler);
-    console.log('Autoclicker detector started on target element.');
+    document.addEventListener('click', this._clickHandler);
+    console.log('Autoclicker detector started.');
   }
 
   stop() {
     this.isMonitoring = false;
     if (this._clickHandler) {
-      this.targetElement.removeEventListener('click', this._clickHandler);
+      document.removeEventListener('click', this._clickHandler);
     }
   }
 
-  handleClick(event) {
+  handleClick() {
     if (this.cooldown) return;
 
     const now = Date.now();
@@ -282,33 +279,15 @@ export class AutoclickerDetector {
 
   defaultViolationHandler(attempt) {
     if (attempt === 1) {
-      this.showWarning('⚠️ Warning: Autoclicker detected! This is your first warning. The second attempt will result in a 50% resource generation penalty for 1 month. The third attempt will result in character deletion.');
+      this.showWarning('⚠️ Warning: Autoclicker detected! This is your first warning. The second attempt will result in a penalty.');
     } else if (attempt === 2) {
-      this.showWarning('⚠️ Penalty: Autoclicker detected again! Your resource generation will be reduced by 50% for 1 month. The third attempt will result in character deletion.');
-      this.applyPenalty();
+      this.showWarning('⚠️ Penalty: Autoclicker detected again! Your progress will be penalized. The third attempt will result in character deletion.');
+      // TODO: Integrate your game's penalty logic here
+      // e.g., reduce resources, reset progress, etc.
     } else if (attempt >= 3) {
       this.showWarning('🚫 Banned: Repeated autoclicker usage detected. Your character will now be deleted.');
       this.deleteCharacter();
     }
-  }
-
-  applyPenalty() {
-    const oneMonthMs = 30 * 24 * 60 * 60 * 1000;
-    const penaltyEnd = Date.now() + oneMonthMs;
-    try {
-      localStorage.setItem('autoclicker_penalty_until', penaltyEnd.toString());
-    } catch (e) {
-      console.warn('Failed to save penalty state to LocalStorage.');
-    }
-    console.log(`Penalty applied until: ${new Date(penaltyEnd).toISOString()}`);
-  }
-
-  deleteCharacter() {
-    console.warn('Character deletion triggered due to cheating.');
-    try {
-      localStorage.setItem('autoclicker_banned', 'true');
-    } catch (e) { /* ignore */ }
-    window.dispatchEvent(new CustomEvent('autoclicker-ban'));
   }
 
   showWarning(message) {
@@ -334,5 +313,12 @@ export class AutoclickerDetector {
     btn.onclick = () => {
       document.body.removeChild(overlay);
     };
+  }
+
+  deleteCharacter() {
+    console.warn('Character deletion triggered due to cheating.');
+    // TODO: Integrate with your game's save system
+    // Example: localStorage.removeItem('gameSaveData');
+    // window.location.reload();
   }
 }
