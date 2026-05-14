@@ -57,7 +57,7 @@
       </div>
     </header>
 
-    <main :class="['flex-1 p-6 overflow-y-auto custom-scrollbar pb-24 lg:pb-6', themeClasses.primaryBg]">
+    <main :class="['flex-1 p-6 overflow-y-auto custom-scrollbar pb-24', themeClasses.primaryBg]">
       <SanctumView
         v-if="activeMenu === 'sanctum'"
         :knowledge="knowledge"
@@ -98,24 +98,24 @@
     </div>
 
     <nav :class="[
-        themeClasses.headerBg, 
-        themeClasses.accentBorder, 
-        'fixed bottom-0 left-0 right-0 lg:left-1/2 lg:-translate-x-1/2 lg:right-auto lg:bottom-4',
-        'flex items-center justify-around lg:justify-center',
-        'p-1 lg:p-3', 
-        'space-x-0 lg:space-x-2', 
-        'lg:rounded-full shadow-2xl border z-50'
-      ]">
-      <button 
-        v-for="menuItem in menuItems" 
+      themeClasses.headerBg,
+      themeClasses.accentBorder,
+      'fixed bottom-0 left-0 right-0 w-full',
+      'flex items-center justify-center',
+      'p-2',
+      'space-x-4',
+      'shadow-2xl border-t z-50'
+    ]">
+      <button
+        v-for="menuItem in menuItems"
         :key="menuItem.id"
         @click="activeMenu = menuItem.id"
         :class="[
           'relative group rounded-full transition-all duration-200 ease-in-out',
           'transform hover:scale-110',
-          'w-14 h-14 flex items-center justify-center lg:w-auto lg:h-auto lg:p-3', 
-          activeMenu === menuItem.id 
-            ? [themeClasses.activeMenuBg, themeClasses.activeMenuText, 'scale-110 shadow-inner'] 
+          'w-14 h-14 flex items-center justify-center',
+          activeMenu === menuItem.id
+            ? [themeClasses.activeMenuBg, themeClasses.activeMenuText, 'scale-110 shadow-inner']
             : [themeClasses.headerText, 'opacity-70 hover:opacity-100']
         ]"
         :title="menuItem.name"
